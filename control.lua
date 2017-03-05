@@ -180,7 +180,7 @@ local signalColorMap = {
 }
 
 local function RegisterStrings()
-  if remote.interfaces['signalstrings']['register_signal'] then
+  if remote.interfaces['signalstrings'] and remote.interfaces['signalstrings']['register_signal'] then
     local syms = {
       ["signal-stop"] = ".",
       ["signal-qmark"]="?",
