@@ -138,6 +138,18 @@ local signalColorMap = {
   ["signal-yellow"] = {r=1.0,  g=1.0,  b=0.2, a=1},
   ["signal-pink"]   = {r=1.0,  g=0.4,  b=1.0, a=1},
   ["signal-cyan"]   = {r=0.0,  g=1.0,  b=1.0, a=1},
+  ["signal-orange"]	= {r=1.0,  g=0.5,  b=0.0, a=1},
+  ["signal-purple"]	= {r=0.5,  g=0.0,  b=1.0, a=1},
+  ["signal-radioactive"]    = {r=0.6, g=1.0, b=0.0, a=1},
+  ["signal-christmas-green"] = {r=0.0, g=0.4, b=0.0, a=1},
+  ["signal-christmas-red"]   = {r=0.6, g=0.2, b=0.2, a=1},
+  ["signal-basic-yellow"]    = {r=1.0, g=0.7, b=0.1, a=1},
+  ["signal-fast-red"]        = {r=1.0, g=0.3, b=0.1, a=1},
+  ["signal-express-blue"]    = {r=0.2, g=0.6, b=0.8, a=1},
+  ["signal-brown"]	    = {r=0.5, g=0.2, b=0.1, a=1},
+  ["signal-grey"]	    = {r=0.6, g=0.6, b=0.6, a=1},
+  ["signal-black"]	    = {r=0.0, g=0.0, b=0.0, a=1},
+  ["signal-white"]	    = {r=0.9, g=0.9, b=0.9, a=1},
 }
 
 --sets the state(s) and update the sprite for a nixie
