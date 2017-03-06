@@ -149,7 +149,7 @@ local signalColorMap = {
   ["signal-brown"]	    = {r=0.5, g=0.2, b=0.1, a=1},
   ["signal-grey"]	    = {r=0.6, g=0.6, b=0.6, a=1},
   ["signal-black"]	    = {r=0.0, g=0.0, b=0.0, a=1},
-  ["signal-white"]	    = {r=0.9, g=0.9, b=0.9, a=1},
+  ["signal-white"]	    = {r=0.9, g=0.9, b=0.9, a=1}, -- The nixie-tubes will be completely black, might be useful to create a blinking effect.
 }
 
 --sets the state(s) and update the sprite for a nixie
