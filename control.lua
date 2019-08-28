@@ -184,11 +184,13 @@ local function get_signals_filtered(filters,entity)
   if not red and not green then return results end
   for i,f in pairs(filters) do
     results[i] = 0
-    if red then 
-      results[i] =  results[i] + red.get_signal(f) 
-    end
-    if green then 
-      results[i] =  results[i] + green.get_signal(f) 
+    if f.name then
+      if red then
+        results[i] =  results[i] + red.get_signal(f)
+      end
+      if green then
+        results[i] =  results[i] + green.get_signal(f)
+      end
     end
   end
   return results
