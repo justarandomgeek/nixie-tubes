@@ -29,7 +29,9 @@ data:extend{
       {"iron-plate",2},
       {"iron-stick", 10},
     },
-    result = "nixie-tube"
+    results = {
+      {type="item", name="nixie-tube", amount=1},
+    },
   },
   {
     type = "item",
@@ -93,7 +95,9 @@ data:extend{
       {"iron-plate",2},
       {"iron-stick", 10},
     },
-    result = "nixie-tube-alpha"
+    results = {
+      {type="item", name="nixie-tube-alpha", amount=1},
+    },
   },
   {
     type = "item",
@@ -157,7 +161,9 @@ data:extend{
       {"iron-plate", 1},
       {"iron-stick", 5},
     },
-    result = "nixie-tube-small"
+    results = {
+      {type="item", name="nixie-tube-small", amount=1},
+    },
   },
   {
     type = "item",
