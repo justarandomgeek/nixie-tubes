@@ -6,7 +6,36 @@ do
   end
 end
 
--- luacheck: globals global settings game defines script
+---@class NixieGlobal
+---@field alphas {[integer]:LuaEntity?}
+---@field next_alpha? integer
+---@field controllers {[integer]:LuaEntity?}
+---@field next_controller? integer
+---@field nextdigit {[integer]:LuaEntity?}
+---@field cache {[integer]:NixieCache?}
+global = {}
+
+---@class NixieCache
+---@field control LuaLampControlBehavior
+---@field lastvalue? integer
+---@field lastcolor? Color[]
+---@field sprites integer[] rendering sprite IDs
+
+
+---@param unit_number integer
+---@return NixieCache
+local function getCache(unit_number)
+  local cache = global.cache[unit_number]
+  if not cache then
+    cache = {
+
+    }
+    global.cache[unit_number] = cache
+  end
+  return cache
+end
+
+
 local validEntityName = {
   ['nixie-tube']       = 1,
   ['nixie-tube-alpha'] = 1,
@@ -87,7 +116,7 @@ local function RegisterStrings()
       ["signal-asterisk"]="*",
       ["signal-minus"]="-",
       ["signal-plus"]="+",
-	  ["signal-percent"]="%",
+      ["signal-percent"]="%",
     }
     for name,char in pairs(syms) do
       remote.call('signalstrings','register_signal',name,char)
@@ -97,6 +126,12 @@ end
 
 --sets the state(s) and update the sprite for a nixie
 local is_simulation = script.level.is_simulation
+
+
+---@param nixie LuaEntity
+---@param cache NixieCache
+---@param newstates string[]
+---@param newcolor? Color
 local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
     if not new_state then new_state = "off" end
@@ -107,8 +142,9 @@ local function setStates(nixie,cache,newstates,newcolor)
     local obj = cache.sprites[key]
     if not (obj and rendering.is_valid(obj)) then
       cache.lastcolor[key] = nil
-      
+
       local num = validEntityName[nixie.name]
+      ---@type Vector.0
       local position
       if num == 1 then -- large tube, one sprite
         position = {x=1/32, y=1/32}
@@ -128,10 +164,10 @@ local function setStates(nixie,cache,newstates,newcolor)
 
       cache.sprites[key] = obj
     end
-    
+
     if nixie.energy > 70 or is_simulation then
       rendering.set_sprite(obj,"nixie-tube-sprite-" .. new_state)
-      
+
       local color = newcolor
       if not color then color = {r=1.0,  g=0.6,  b=0.2, a=1.0} end
       if new_state == "off" then color={r=1.0,  g=1.0,  b=1.0, a=1.0} end
@@ -150,6 +186,8 @@ local function setStates(nixie,cache,newstates,newcolor)
   end
 end
 
+---@param behavior LuaLampControlBehavior
+---@return SignalID?
 local function get_selected_signal(behavior)
   if behavior == nil then
     return nil
@@ -172,34 +210,37 @@ local function get_selected_signal(behavior)
   return signal
 end
 
+---@param filters {[any]:SignalID?}
+---@param entity LuaEntity
+---@return {[any]:integer?}
 local function get_signals_filtered(filters,entity)
-  --   filters = {
-  --  SignalID,
-  --  ...
-  --  }
   local red = entity.get_circuit_network(defines.wire_type.red)
   local green = entity.get_circuit_network(defines.wire_type.green)
+  ---@type {[any]:integer}
   local results = {}
   if not red and not green then return results end
   for i,f in pairs(filters) do
     results[i] = 0
     if f.name then
-      if red then 
-        results[i] =  results[i] + red.get_signal(f) 
+      if red then
+        results[i] =  results[i] + red.get_signal(f)
       end
-      if green then 
-        results[i] =  results[i] + green.get_signal(f) 
+      if green then
+        results[i] =  results[i] + green.get_signal(f)
       end
     end
   end
   return results
 end
 
-local function displayValString(entity,vs,color,offset)
-  if not offset then offset = vs and #vs or 0 end
-  while entity do 
+---@param entity LuaEntity
+---@param vs? string
+---@param color? Color
+local function displayValString(entity,vs,color)
+  local offset = vs and #vs or 0
+  while entity do
     local nextdigit = global.nextdigit[entity.unit_number]
-    local cache = global.cache[entity.unit_number]
+    local cache = getCache(entity.unit_number)
     local chcount = #cache.sprites
 
     if not vs then
@@ -208,8 +249,8 @@ local function displayValString(entity,vs,color,offset)
       setStates(entity,cache,{"off",vs:sub(offset,offset)},color)
     elseif offset >= chcount then
       setStates(entity,cache,
-        (chcount==1) and 
-          {vs:sub(offset,offset)} or 
+        (chcount==1) and
+          {vs:sub(offset,offset)} or
           {vs:sub(offset-1,offset-1),vs:sub(offset,offset)}
         ,color)
     end
@@ -231,6 +272,8 @@ local function displayValString(entity,vs,color,offset)
   end
 end
 
+---@param i integer
+---@return float
 local function float_from_int(i)
   local sign = bit32.btest(i,0x80000000) and -1 or 1
   local exponent = bit32.rshift(bit32.band(i,0x7F800000),23)-127
@@ -255,9 +298,12 @@ local function float_from_int(i)
   return sign * math.ldexp(bit32.bor(significand,0x00800000),exponent-23) --[[normal numbers]]
 end
 
+---@param entity LuaEntity
+---@return string?
 local function getAlphaSignals(entity)
   local signals = entity.get_merged_signals()
-  local ch = nil
+  ---@type string
+  local ch
 
   if signals and #signals > 0 then
     for _,s in pairs(signals) do
@@ -274,13 +320,18 @@ local function getAlphaSignals(entity)
   return ch
 end
 
+---@type SignalID
 local sigFloat = {name="signal-float",type="virtual"}
+
+---@type SignalID
 local sigHex = {name="signal-hex",type="virtual"}
 
+---@param entity LuaEntity
+---@param cache NixieCache
 local function onTickController(entity,cache)
-  if not (cache.control and cache.control.valid) then cache.control = entity.get_or_create_control_behavior() end
+  if not (cache.control and cache.control.valid) then cache.control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]] end
   local control = cache.control
-  
+
   local sigdata = get_signals_filtered( {float = sigFloat, hex = sigHex, v = get_selected_signal(control) }, entity)
 
   local v = sigdata.v or 0
@@ -304,7 +355,7 @@ local function onTickController(entity,cache)
       v = float_from_int(v)
     end
 
-    displayValString(entity,format:format(v),control.use_colors and control.color)
+    displayValString(entity,format:format(v),control.use_colors and control.color or nil)
   end
 
 end
@@ -319,11 +370,14 @@ local always_on = {
   connect_to_logistic_network=false
 }
 
+---@param entity LuaEntity
+---@param cache NixieCache
 local function onTickAlpha(entity,cache)
   local charsig = getAlphaSignals(entity) or "off"
 
+  ---@type Color?
   local color
-  if not (cache.control and cache.control.valid) then cache.control = entity.get_or_create_control_behavior() end
+  if not (cache.control and cache.control.valid) then cache.control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]] end
   local control = cache.control
   if control.use_colors then
     control.circuit_condition = always_on
@@ -334,57 +388,62 @@ local function onTickAlpha(entity,cache)
 end
 
 
-local function onTick(event)
-
+local function onTick()
+  -- workaround for broken rewrites when `global` is more than once on a line
+  local g = global --[[@as NixieGlobal]]
   for _=1, settings.global["nixie-tube-update-speed-numeric"].value do
+    ---@type LuaEntity?
     local nixie
-    if global.next_controller and not global.controllers[global.next_controller] then
-      global.next_controller=nil
+    if g.next_controller and not g.controllers[g.next_controller] then
+      g.next_controller=nil
     end
 
-    global.next_controller,nixie = next(global.controllers,global.next_controller)
+    g.next_controller,nixie = next(g.controllers,g.next_controller)
 
     if nixie then
       if nixie.valid then
-        onTickController(nixie,global.cache[global.next_controller])
+        onTickController(nixie,getCache(g.next_controller))
       else
-        log("cleaning up nixie tube " .. global.next_controller .. " destroyed without events")
-        global.controllers[global.next_controller] = nil
-        global.cache[global.next_controller] = nil
-        global.next_controller = nil
+        log("cleaning up nixie tube " .. g.next_controller .. " destroyed without events")
+        g.controllers[g.next_controller] = nil
+        g.cache[g.next_controller] = nil
+        g.next_controller = nil
       end
     end
   end
 
   for _=1, settings.global["nixie-tube-update-speed-alpha"].value do
+    ---@type LuaEntity?
     local nixie
-    if global.next_alpha and not global.alphas[global.next_alpha] then
-      global.next_alpha=nil
+    if g.next_alpha and not g.alphas[g.next_alpha] then
+      g.next_alpha=nil
     end
-    global.next_alpha,nixie = next(global.alphas,global.next_alpha)
+    g.next_alpha,nixie = next(g.alphas,g.next_alpha)
 
     if nixie then
       if nixie.valid then
-        onTickAlpha(nixie, global.cache[global.next_alpha])
+        onTickAlpha(nixie, getCache(g.next_alpha))
       else
-        log("cleaning up nixie tube " .. global.next_alpha .. " destroyed without events")
-        global.alphas[global.next_alpha] = nil
-        global.cache[global.next_alpha] = nil
-        global.next_alpha = nil
+        log("cleaning up nixie tube " .. g.next_alpha .. " destroyed without events")
+        g.alphas[g.next_alpha] = nil
+        g.cache[g.next_alpha] = nil
+        g.next_alpha = nil
       end
     end
   end
 end
 
+---@param entity LuaEntity
 local function onPlaceEntity(entity)
   local num = validEntityName[entity.name]
   if num then
-    local pos=entity.position
     local surf=entity.surface
 
+    ---@type integer[]
     local sprites = {}
     for n=1, num do
       --place the /real/ thing(s) at same spot
+      ---@type Vector
       local position
       if num == 1 then -- large tube, one sprite
         position = {x=1/32, y=1/32}
@@ -405,13 +464,13 @@ local function onPlaceEntity(entity)
       sprites[n]=sprite
     end
 
-    local control = entity.get_or_create_control_behavior()
+    local control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
     global.cache[entity.unit_number]={
       control = control,
       sprites = sprites,
       lastcolor = {},
     }
-    
+
     if entity.name == "nixie-tube-alpha" then
       global.alphas[entity.unit_number] = entity
     else
@@ -450,6 +509,7 @@ local function onPlaceEntity(entity)
   end
 end
 
+---@param entity LuaEntity
 local function onRemoveEntity(entity)
   if entity.valid then
     if validEntityName[entity.name] then
@@ -460,7 +520,7 @@ local function onRemoveEntity(entity)
         global.next_controller=nil
       end
       global.controllers[entity.unit_number]=nil
-      
+
 
       --if i was an alpha, deregister
       if global.next_alpha == entity.unit_number then
@@ -469,7 +529,7 @@ local function onRemoveEntity(entity)
       end
       global.alphas[entity.unit_number]=nil
       global.cache[entity.unit_number]=nil
-      
+
       local nextdigit = global.nextdigit[entity.unit_number]
       --if I had a next-digit, register it as a controller
       if nextdigit and nextdigit.valid then
@@ -497,18 +557,6 @@ local function RegisterPicker()
     end)
   end
 end
-
---[[
-global = {
-  alphas = { [unit_number]=>entity },
-  controllers = { [unit_number]=>entity },
-
-  nextdigit = { [unit_number]=>entity }
-  cache = {
-    [unit_number]={control,lastcolor,sprites={}}
-  }
-}
-]]
 
 script.on_init(function()
   global.alphas = {}

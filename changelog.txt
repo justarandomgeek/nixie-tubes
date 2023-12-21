@@ -2,10 +2,13 @@
 Version: 1.1.4
 Date: ????
   Changes:
+    - removed use of simhelper/funccapture, which is being removed
+    - Type annotations and minor bugfixes
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.3
 Date: 2022-06-02
   Changes:
+    - use funccapture for tips & tricks
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.2
 Date: 2021-02-03
