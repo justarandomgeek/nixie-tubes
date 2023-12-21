@@ -16,9 +16,9 @@ end
 global = {}
 
 ---@class NixieCache
----@field control LuaLampControlBehavior
+---@field control? LuaLampControlBehavior
 ---@field lastvalue? integer
----@field lastcolor? Color[]
+---@field lastcolor Color[]
 ---@field sprites integer[] rendering sprite IDs
 
 
@@ -28,7 +28,8 @@ local function getCache(unit_number)
   local cache = global.cache[unit_number]
   if not cache then
     cache = {
-
+      lastcolor = {},
+      sprites = {},
     }
     global.cache[unit_number] = cache
   end
@@ -268,6 +269,7 @@ local function displayValString(entity,vs,color)
         nextdigit = nil
       end
     end
+    ---@diagnostic disable-next-line:cast-local-type
     entity = nextdigit
   end
 end
@@ -329,8 +331,12 @@ local sigHex = {name="signal-hex",type="virtual"}
 ---@param entity LuaEntity
 ---@param cache NixieCache
 local function onTickController(entity,cache)
-  if not (cache.control and cache.control.valid) then cache.control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]] end
   local control = cache.control
+  if not (control and control.valid) then
+    control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
+    cache.control = control
+  end
+
 
   local sigdata = get_signals_filtered( {float = sigFloat, hex = sigHex, v = get_selected_signal(control) }, entity)
 
@@ -340,9 +346,9 @@ local function onTickController(entity,cache)
     cache.lastvalue = v
 
     local float = sigdata.float
-    float = float and float ~= 0
+    float = float and float ~= 0 ---@diagnostic disable-line:cast-local-type
     local hex = sigdata.hex
-    hex = hex and hex ~= 0
+    hex = hex and hex ~= 0 ---@diagnostic disable-line:cast-local-type
     local format = "%i"
     if float and hex then
       format = "%A"
@@ -377,8 +383,11 @@ local function onTickAlpha(entity,cache)
 
   ---@type Color?
   local color
-  if not (cache.control and cache.control.valid) then cache.control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]] end
   local control = cache.control
+  if not (control and control.valid) then
+    control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
+    cache.control = control
+  end
   if control.use_colors then
     control.circuit_condition = always_on
     color = control.color
@@ -438,9 +447,8 @@ local function onPlaceEntity(entity)
   local num = validEntityName[entity.name]
   if num then
     local surf=entity.surface
-
-    ---@type integer[]
-    local sprites = {}
+    local cache = getCache(entity.unit_number)
+    local sprites = cache.sprites
     for n=1, num do
       --place the /real/ thing(s) at same spot
       ---@type Vector
@@ -464,12 +472,7 @@ local function onPlaceEntity(entity)
       sprites[n]=sprite
     end
 
-    local control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
-    global.cache[entity.unit_number]={
-      control = control,
-      sprites = sprites,
-      lastcolor = {},
-    }
+    cache.control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
 
     if entity.name == "nixie-tube-alpha" then
       global.alphas[entity.unit_number] = entity
