@@ -398,25 +398,23 @@ end
 
 
 local function onTick()
-  -- workaround for broken rewrites when `global` is more than once on a line
-  local g = global --[[@as NixieGlobal]]
   for _=1, settings.global["nixie-tube-update-speed-numeric"].value do
     ---@type LuaEntity?
     local nixie
-    if g.next_controller and not g.controllers[g.next_controller] then
-      g.next_controller=nil
+    if global.next_controller and not global.controllers[global.next_controller] then
+      global.next_controller=nil
     end
 
-    g.next_controller,nixie = next(g.controllers,g.next_controller)
+    global.next_controller,nixie = next(global.controllers,global.next_controller)
 
     if nixie then
       if nixie.valid then
-        onTickController(nixie,getCache(g.next_controller))
+        onTickController(nixie,getCache(global.next_controller))
       else
-        log("cleaning up nixie tube " .. g.next_controller .. " destroyed without events")
-        g.controllers[g.next_controller] = nil
-        g.cache[g.next_controller] = nil
-        g.next_controller = nil
+        log("cleaning up nixie tube " .. global.next_controller .. " destroyed without events")
+        global.controllers[global.next_controller] = nil
+        global.cache[global.next_controller] = nil
+        global.next_controller = nil
       end
     end
   end
@@ -424,19 +422,19 @@ local function onTick()
   for _=1, settings.global["nixie-tube-update-speed-alpha"].value do
     ---@type LuaEntity?
     local nixie
-    if g.next_alpha and not g.alphas[g.next_alpha] then
-      g.next_alpha=nil
+    if global.next_alpha and not global.alphas[global.next_alpha] then
+      global.next_alpha=nil
     end
-    g.next_alpha,nixie = next(g.alphas,g.next_alpha)
+    global.next_alpha,nixie = next(global.alphas,global.next_alpha)
 
     if nixie then
       if nixie.valid then
-        onTickAlpha(nixie, getCache(g.next_alpha))
+        onTickAlpha(nixie, getCache(global.next_alpha))
       else
-        log("cleaning up nixie tube " .. g.next_alpha .. " destroyed without events")
-        g.alphas[g.next_alpha] = nil
-        g.cache[g.next_alpha] = nil
-        g.next_alpha = nil
+        log("cleaning up nixie tube " .. global.next_alpha .. " destroyed without events")
+        global.alphas[global.next_alpha] = nil
+        global.cache[global.next_alpha] = nil
+        global.next_alpha = nil
       end
     end
   end
