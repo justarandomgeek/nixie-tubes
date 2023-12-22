@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.4
-Date: ????
+Date: 2023-12-22
   Changes:
     - removed use of funccapture, which is being removed
     - Type annotations and minor bugfixes
