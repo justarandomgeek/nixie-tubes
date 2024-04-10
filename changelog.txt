@@ -2,6 +2,7 @@
 Version: 1.1.5
 Date: ????
   Changes:
+    - removed simhelper, use native sim mod loading
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.4
 Date: 2023-12-22
