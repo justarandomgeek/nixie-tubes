@@ -1,20 +1,14 @@
-circuit_connector_definitions["nixie"] = circuit_connector_definitions.create
-(
+require("circuit-connector-sprites")
+
+circuit_connector_definitions["nixie"] = circuit_connector_definitions.create_single(
   universal_connector_template,
-  {
-    --{ variation = 26, main_offset = util.by_pixel(4.5, 7.5), shadow_offset = util.by_pixel(3.5, 7.5), show_shadow = true },
-    { variation = 26, main_offset = util.by_pixel(2.5, 18.0), shadow_offset = util.by_pixel(2.0, 18.0), show_shadow = true },
-  }
+  { variation = 26, main_offset = util.by_pixel(2.5, 18.0), shadow_offset = util.by_pixel(2.0, 18.0), show_shadow = true }
 )
 
-circuit_connector_definitions["nixie-small"] = circuit_connector_definitions.create
-(
+circuit_connector_definitions["nixie-small"] = circuit_connector_definitions.create_single(
   universal_connector_template,
-  {
-    { variation = 26, main_offset = util.by_pixel(2.5, 10.0), shadow_offset = util.by_pixel(2.0, 10.0), show_shadow = true },
-  }
+  { variation = 26, main_offset = util.by_pixel(2.5, 10.0), shadow_offset = util.by_pixel(2.0, 10.0), show_shadow = true }
 )
-
 
 data:extend{
 
@@ -25,14 +19,14 @@ data:extend{
     enabled = false,
     ingredients =
     {
-      {"electronic-circuit",1},
-      {"iron-plate",2},
-      {"iron-stick", 10},
+      {type="item", name="electronic-circuit", amount=1},
+      {type="item", name="iron-plate", amount=2},
+      {type="item", name="iron-stick", amount=10},
     },
     results = {
       {type="item", name="nixie-tube", amount=1},
     },
-  },
+  }--[[@as data.RecipePrototype]],
   {
     type = "item",
     name = "nixie-tube",
@@ -42,7 +36,7 @@ data:extend{
     order = "c-a",
     place_result = "nixie-tube",
     stack_size = 50
-  },
+  }--[[@as data.ItemPrototype]],
   {
     type = "lamp",
     name = "nixie-tube",
@@ -60,7 +54,7 @@ data:extend{
       type = "electric",
       usage_priority = "lamp",
     },
-    energy_usage_per_tick = "4KW",
+    energy_usage_per_tick = "4kW",
     light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=0}},
     picture_off =
     {
@@ -81,7 +75,19 @@ data:extend{
     },
     circuit_wire_connection_point = circuit_connector_definitions["nixie"].points,
     circuit_connector_sprites = circuit_connector_definitions["nixie"].sprites,
-    circuit_wire_max_distance = 7.5
+    circuit_wire_max_distance = 7.5,
+    created_effect = {
+      type = "direct",
+      action_delivery = {
+        type = "instant",
+        source_effects = {
+          {
+            type = "script",
+            effect_id = "nixie-created",
+          },
+        }
+      }
+    },
   },
 
   -- 2x1 tile one-charater alpha nixie tube
@@ -91,9 +97,9 @@ data:extend{
     enabled = false,
     ingredients =
     {
-      {"electronic-circuit",1},
-      {"iron-plate",2},
-      {"iron-stick", 10},
+      {type="item", name="electronic-circuit", amount=1},
+      {type="item", name="iron-plate", amount=2},
+      {type="item", name="iron-stick", amount=10},
     },
     results = {
       {type="item", name="nixie-tube-alpha", amount=1},
@@ -126,7 +132,7 @@ data:extend{
       type = "electric",
       usage_priority = "secondary-input",
     },
-    energy_usage_per_tick = "4KW",
+    energy_usage_per_tick = "4kW",
     light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=0}},
     picture_off =
     {
@@ -147,7 +153,19 @@ data:extend{
     },
     circuit_wire_connection_point = circuit_connector_definitions["nixie"].points,
     circuit_connector_sprites = circuit_connector_definitions["nixie"].sprites,
-    circuit_wire_max_distance = 7.5
+    circuit_wire_max_distance = 7.5,
+    created_effect = {
+      type = "direct",
+      action_delivery = {
+        type = "instant",
+        source_effects = {
+          {
+            type = "script",
+            effect_id = "nixie-created",
+          },
+        }
+      }
+    },
   },
 
   -- small 1x1 tile two-digit nixie tube
@@ -157,9 +175,9 @@ data:extend{
     enabled = false,
     ingredients =
     {
-      {"electronic-circuit",1},
-      {"iron-plate", 1},
-      {"iron-stick", 5},
+      {type="item", name="electronic-circuit", amount=1},
+      {type="item", name="iron-plate", amount=1},
+      {type="item", name="iron-stick", amount=5},
     },
     results = {
       {type="item", name="nixie-tube-small", amount=1},
@@ -192,7 +210,7 @@ data:extend{
       type = "electric",
       usage_priority = "secondary-input",
     },
-    energy_usage_per_tick = "4KW",
+    energy_usage_per_tick = "4kW",
     light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=0}},
     light_when_colored = {intensity = 1, size = 6, color = {r=1.0, g=1.0, b=1.0}},
     picture_off =
@@ -216,6 +234,18 @@ data:extend{
 
     circuit_wire_connection_point = circuit_connector_definitions["nixie-small"].points,
     circuit_connector_sprites = circuit_connector_definitions["nixie-small"].sprites,
+    created_effect = {
+      type = "direct",
+      action_delivery = {
+        type = "instant",
+        source_effects = {
+          {
+            type = "script",
+            effect_id = "nixie-created",
+          },
+        }
+      }
+    },
   },
 }
 

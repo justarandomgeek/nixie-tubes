@@ -12,7 +12,7 @@ data:extend({
           {"logistic-science-pack", 1,},
         },
     },
-    prerequisites = {"advanced-electronics"},
+    --prerequisites = {"advanced-electronics"},
     effects = {
       {
         type = "unlock-recipe",
