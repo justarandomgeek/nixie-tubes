@@ -17,11 +17,9 @@ data:extend{
     type = "recipe",
     name = "nixie-tube",
     enabled = false,
-    ingredients =
-    {
-      {type="item", name="electronic-circuit", amount=1},
-      {type="item", name="iron-plate", amount=2},
-      {type="item", name="iron-stick", amount=10},
+    ingredients = {
+      {type = "item", name = "iron-plate", amount = 1},
+      {type = "item", name = "electronic-circuit", amount = 1}
     },
     results = {
       {type="item", name="nixie-tube", amount=1},
@@ -95,11 +93,9 @@ data:extend{
     type = "recipe",
     name = "nixie-tube-alpha",
     enabled = false,
-    ingredients =
-    {
-      {type="item", name="electronic-circuit", amount=1},
-      {type="item", name="iron-plate", amount=2},
-      {type="item", name="iron-stick", amount=10},
+    ingredients = {
+      {type = "item", name = "iron-plate", amount = 1},
+      {type = "item", name = "electronic-circuit", amount = 1}
     },
     results = {
       {type="item", name="nixie-tube-alpha", amount=1},
@@ -173,11 +169,9 @@ data:extend{
     type = "recipe",
     name = "nixie-tube-small",
     enabled = false,
-    ingredients =
-    {
-      {type="item", name="electronic-circuit", amount=1},
-      {type="item", name="iron-plate", amount=1},
-      {type="item", name="iron-stick", amount=5},
+    ingredients = {
+      {type = "item", name = "iron-plate", amount = 1},
+      {type = "item", name = "electronic-circuit", amount = 1}
     },
     results = {
       {type="item", name="nixie-tube-small", amount=1},
