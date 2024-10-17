@@ -244,6 +244,34 @@ local function float_from_int(i)
   return sign * math.ldexp(bit32.bor(significand,0x00800000),exponent-23) --[[normal numbers]]
 end
 
+---@param high integer
+---@param low integer
+---@return double
+local function double_from_ints(high, low)
+  local sign = bit32.btest(high,0x80000000) and -1 or 1
+  local exponent = bit32.rshift(bit32.band(high,0x7FF00000),20)-1023
+  -- have to use regular math to reassemble this becuase it's so long
+  local significand = (bit32.band(high,0x000FFFFF) * 0x100000000) + low
+
+  if exponent == 1024 then
+    if significand == 0 then
+      return sign/0 --[[infinity]]
+    else
+      return 0/0 --[[nan]]
+    end
+  end
+
+  if exponent == -1023 then
+    if significand == 0 then
+      return sign * 0 --[[zero]]
+    else
+      return sign * math.ldexp(significand,-1074) --[[denormal numbers]]
+    end
+  end
+
+  return sign * math.ldexp(significand+0x10000000000000,exponent-52) --[[normal numbers]]
+end
+
 ---@param entity LuaEntity
 ---@return string?
 local function getAlphaSignals(entity)
@@ -281,38 +309,53 @@ local function onTickController(entity,cache)
     cache.control = control
   end
 
-  local sigControl = get_selected_signal(control)
+  local float_v = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+  local float = float_v == 1
+  local double = float_v == 2
+  
+  local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
 
-  local sigdata = {
-    float = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red),
-    hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red),
-    v = sigControl and entity.get_signal(sigControl, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red),
-  }
-
-  local v = sigdata.v or 0
+  local selected = get_selected_signal(control)
+  ---@type number, number
+  local v = 0
+  if selected then
+    if double then
+      v = double_from_ints(
+        entity.get_signal(selected, defines.wire_connector_id.circuit_green),
+        entity.get_signal(selected, defines.wire_connector_id.circuit_red))
+    else
+      v = entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+      if float then
+        v = float_from_int(v)
+      end
+    end
+  end
 
   local use_colors = cache.control.use_colors
-  local flags = (sigdata.float and 1 or 0) + (sigdata.hex and 2 or 0) + (use_colors and 4 or 0)
+  local flags = (float_v) + (hex and 4 or 0) + (use_colors and 8 or 0)
 
   --if value or any flags changed, or always update while use_colors...
   if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
     cache.flags = flags
     cache.lastvalue = v
 
-    local float = sigdata.float
-    float = float and float ~= 0 ---@diagnostic disable-line:cast-local-type
-    local hex = sigdata.hex
-    hex = hex and hex ~= 0 ---@diagnostic disable-line:cast-local-type
+    
     local format = "%i"
-    if float and hex then
-      format = "%A"
-      v = float_from_int(v)
-    elseif hex then
-      format = "%X"
-      if v < 0 then v = v + 0x100000000 end
-    elseif float then
+    if float then
       format = "%G"
-      v = float_from_int(v)
+      if hex then
+        format = "%A"
+      end
+    elseif double then
+      format = "%.14G"
+      if hex then
+        format = "%A"
+      end
+    else
+      if hex then
+        format = "%X"
+        if v < 0 then v = v + 0x100000000 end
+      end
     end
 
     displayValString(entity,format:format(v),control.use_colors and control.color or nil)
