@@ -71,8 +71,7 @@ data:extend{
       height = 1,
       shift = {0,0}
     },
-    circuit_wire_connection_point = circuit_connector_definitions["nixie"].points,
-    circuit_connector_sprites = circuit_connector_definitions["nixie"].sprites,
+    circuit_connector = circuit_connector_definitions["nixie"],
     circuit_wire_max_distance = 7.5,
     created_effect = {
       type = "direct",
@@ -147,8 +146,7 @@ data:extend{
       height = 1,
       shift = {0,0}
     },
-    circuit_wire_connection_point = circuit_connector_definitions["nixie"].points,
-    circuit_connector_sprites = circuit_connector_definitions["nixie"].sprites,
+    circuit_connector = circuit_connector_definitions["nixie"],
     circuit_wire_max_distance = 7.5,
     created_effect = {
       type = "direct",
@@ -225,9 +223,7 @@ data:extend{
       shift = {0,0}
     },
     circuit_wire_max_distance = 7.5,
-
-    circuit_wire_connection_point = circuit_connector_definitions["nixie-small"].points,
-    circuit_connector_sprites = circuit_connector_definitions["nixie-small"].sprites,
+    circuit_connector = circuit_connector_definitions["nixie-small"],
     created_effect = {
       type = "direct",
       action_delivery = {
