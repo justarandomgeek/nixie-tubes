@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
-Date: ????
+Date: 2024-10-17
   Changes:
     - Updated for Factorio 2.0
     - Support for `double` by sending hex=2 and value high half on green, low half on red
