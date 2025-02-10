@@ -1,0 +1,12 @@
+{
+    "virtual-signal": [
+        ["signal-paropen","signal-left-parenthesis"],
+        ["signal-parclose","signal-right-parenthesis"],
+        ["signal-sqopen","signal-left-square-bracket"],
+        ["signal-sqclose","signal-right-square-bracket"],
+        ["signal-stop","signal-letter-dot"],
+        ["signal-qmark","signal-question-mark"],
+        ["signal-exmark","signal-exclamation-mark"],
+        ["signal-asterisk","signal-multiplication"]
+    ]
+}

@@ -2,6 +2,7 @@
 Version: 2.0.2
 Date: ????
   Changes:
+    - unify virtual signals with the ones added to base in 2.0.34
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Date: 2024-10-18
