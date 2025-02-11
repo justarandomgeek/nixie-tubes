@@ -164,7 +164,7 @@ local function get_selected_signal(behavior)
     return nil
   end
 
-  local signal = condition.first_signal
+  local signal = condition.first_signal --[[@as SignalID? ]]
   if signal and not condition.fulfilled then
     -- use >= MININT32 to ensure always-on
     condition.comparator="≥"
@@ -173,7 +173,11 @@ local function get_selected_signal(behavior)
     behavior.circuit_condition = condition
   end
 
-  return signal
+  if signal and signal.name then
+    return signal
+  end
+
+  return nil
 end
 
 ---@param entity LuaEntity
