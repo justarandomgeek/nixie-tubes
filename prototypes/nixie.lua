@@ -240,18 +240,33 @@ data:extend{
 }
 
 function nixie_sprite(char,xoffset,yoffset)
-  return   {
+  return  {
       type = "sprite",
       name = "nixie-tube-sprite-" .. char,
-      filename = "__nixie-tubes__/graphics/nixie-chars-mono.png",
-      x = xoffset * 40, -- Increase the offset by image table
-      y = yoffset * 88,
-      width = 40, -- New size image 2x
-      height = 88, -- New size image 2x
-      scale = 0.5, -- Reduced so that the sprite does not crawl over the edges
-      apply_runtime_tint = true,
-      shift = {-2/64,-18/64}, -- Move the sprite to fit into the tube
+      layers = {
+        {
+          filename = "__nixie-tubes__/graphics/nixie-chars-mono.png",
+          x = xoffset * 40, -- Increase the offset by image table
+          y = yoffset * 88,
+          width = 40, -- New size image 2x
+          height = 88, -- New size image 2x
+          scale = 0.5, -- Reduced so that the sprite does not crawl over the edges
+          apply_runtime_tint = true,
+          shift = {-2/64,-18/64}, -- Move the sprite to fit into the tube
+        },
+        {
+          filename = "__nixie-tubes__/graphics/nixie-chars-mono.png", -- could have separate glow layer !
+          x = xoffset * 40, -- Increase the offset by image table
+          y = yoffset * 88,
+          width = 40, -- New size image 2x
+          height = 88, -- New size image 2x
+          scale = 0.5, -- Reduced so that the sprite does not crawl over the edges
+          apply_runtime_tint = true,
+          shift = {-2/64,-18/64}, -- Move the sprite to fit into the tube
+          draw_as_glow = true, -- <------------ magic
+        }
     }
+  }
 end
 
 local spritelist =
