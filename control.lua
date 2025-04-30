@@ -131,11 +131,27 @@ local function setStates(nixie,cache,newstates,newcolor)
       cache.sprites[key] = obj
     end
 
-    if nixie.energy > 70 or is_simulation then
+    if nixie.energy > 35 or is_simulation then
+      ---@type string
+      local flicker = settings.global["nixie-tube-flickering"].value
+      local lowerMult = 9
+      local upperAdd = 0
+      if flicker ~= "never" then
+        upperAdd = 10
+        if flicker == "always" then
+          lowerMult = 8
+          upperAdd = 20
+        end
+      end
+
+      -- Starts at 90 (or 100 if option isn't always) and goes down to 0 at 50% power
+      local lowerBound = (nixie.energy * 100 / 71 - 50) * lowerMult / 5 + 10
+      local brightness = math.max(0,math.random(lowerBound, math.min(100,lowerBound + upperAdd))) / 100
       obj.sprite = "nixie-tube-sprite-" .. new_state
 
-      local color = newcolor
-      if not color then color = {r=1.0,  g=0.6,  b=0.2, a=1.0} end
+      local color1 = newcolor or {r=1.0,  g=0.6,  b=0.2, a=1.0}
+      -- Isolate the color so multiplications don't stack on colored nixies
+      local color = {r=color1.r * brightness, g=color1.g * brightness, b=color1.b * brightness, a=1.0}
       if new_state == "off" then color={r=1.0,  g=1.0,  b=1.0, a=1.0} end
 
       if not (cache.lastcolor[key] and (cache.lastcolor[key].r == color.r) and (cache.lastcolor[key].g == color.g) and (cache.lastcolor[key].b == color.b) and (cache.lastcolor[key].a == color.a)) then
@@ -335,10 +351,11 @@ local function onTickController(entity,cache)
   end
 
   local use_colors = cache.control.use_colors
+  local flicker = settings.global["nixie-tube-flickering"].value ~= "never"
   local flags = (float_v) + (hex and 4 or 0) + (use_colors and 8 or 0)
 
-  --if value or any flags changed, or always update while use_colors...
-  if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
+  --if value or any flags changed, or always update while use_colors or flicker...
+  if cache.lastvalue ~= v or use_colors or flicker or flags ~= cache.flags then
     cache.flags = flags
     cache.lastvalue = v
 
