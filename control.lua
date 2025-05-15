@@ -147,6 +147,7 @@ local function setStates(nixie,cache,newstates,newcolor)
       -- Starts at 90 (or 100 if option isn't always) and goes down to 0 at 50% power
       local lowerBound = (nixie.energy * 100 / 71 - 50) * lowerMult / 5 + 10
       local brightness = math.max(0,math.random(lowerBound, math.min(100,lowerBound + upperAdd))) / 100
+      if is_simulation then brightness = 100 end
       obj.sprite = "nixie-tube-sprite-" .. new_state
 
       local color1 = newcolor or {r=1.0,  g=0.6,  b=0.2, a=1.0}
