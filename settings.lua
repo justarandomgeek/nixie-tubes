@@ -22,4 +22,12 @@ data:extend{
     default_value = 5,
     order = "nixie-speed-numeric",
   },
+  {
+    type = "string-setting",
+    name = "nixie-tube-flickering",
+    setting_type = "runtime-global",
+    default_value = "on-outage",
+    allowed_values = { "always", "on-outage", "never" },
+    order = "nixie-tube-flickering",
+  },
 }
