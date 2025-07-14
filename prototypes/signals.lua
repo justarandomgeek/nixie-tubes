@@ -30,4 +30,5 @@ create_symsignal("curclose",'a-cb')
 create_symsignal("at",'c')
 
 create_symsignal("float",'x')
+create_symsignal("fixed",'x')
 create_symsignal("hex",'x')

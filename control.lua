@@ -247,6 +247,17 @@ local function float_from_int(i)
   return sign * math.ldexp(bit32.bor(significand,0x00800000),exponent-23) --[[normal numbers]]
 end
 
+
+---@param i integer
+---@return float
+local function float_from_fixed_int(i, fracbits)
+  -- signed 32-bit, so account for negative values
+  if i >= 0x80000000 then
+    i = i - 0x100000000
+  end
+  return i / 2^fracbits
+end
+
 ---@param high integer
 ---@param low integer
 ---@return double
@@ -303,6 +314,9 @@ local sigFloat = {name="signal-float",type="virtual"}
 ---@type SignalID
 local sigHex = {name="signal-hex",type="virtual"}
 
+---@type SignalID
+local sigFixed = {name="signal-fixed",type="virtual"}
+
 ---@param entity LuaEntity
 ---@param cache NixieCache
 local function onTickController(entity,cache)
@@ -316,6 +330,10 @@ local function onTickController(entity,cache)
   local float = float_v == 1
   local double = float_v == 2
   
+  local fixed = entity.get_signal(sigFixed, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+
+  local float_v = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+
   local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
 
   local selected = get_selected_signal(control)
@@ -330,6 +348,9 @@ local function onTickController(entity,cache)
       v = entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
       if float then
         v = float_from_int(v)
+      elseif fixed > 0 and fixed < 32 then
+        v = float_from_fixed_int(v, fixed)
+        float = true
       end
     end
   end

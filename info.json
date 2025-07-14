@@ -1,9 +1,9 @@
 {
   "name": "nixie-tubes",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "factorio_version": "2.0",
   "title": "Nixie Tubes",
-  "author": "GopherAtl, justarandomgeek",
+  "author": "GopherAtl, justarandomgeek, WinterSys/V0rtetty",
   "description": "Adds nixie tubes, for displaying values from a connected circuit network.",
   "dependencies": ["base >= 2.0.34"],
   "package":{
