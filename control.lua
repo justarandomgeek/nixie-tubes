@@ -164,6 +164,7 @@ local function get_selected_signal(behavior)
     return nil
   end
 
+  behavior.circuit_enable_disable = true
   local signal = condition.first_signal --[[@as SignalID? ]]
   if signal and not condition.fulfilled then
     -- use >= MININT32 to ensure always-on
@@ -366,21 +367,9 @@ local function onTickController(entity,cache)
 
 end
 
-local always_on = {
-  condition={
-    first_signal={name="signal-anything",type="virtual"},
-    comparator="≠",
-    constant=0,
-    second_signal=nil
-  },
-  connect_to_logistic_network=false
-}
-
 ---@param entity LuaEntity
 ---@param cache NixieCache
 local function onTickAlpha(entity,cache)
-  local charsig = getAlphaSignals(entity) or "off"
-
   ---@type Color?
   local color
   local control = cache.control
@@ -389,9 +378,11 @@ local function onTickAlpha(entity,cache)
     cache.control = control
   end
   if control.use_colors then
-    control.circuit_condition = always_on
+    entity.always_on = true
     color = control.color
   end
+  local is_on = (not control.circuit_enable_disable) or (control.circuit_condition and control.circuit_condition.fulfilled)
+  local charsig = is_on and getAlphaSignals(entity) or "off"
 
   setStates(entity,cache,{charsig},color)
 end
