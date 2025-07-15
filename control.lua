@@ -303,6 +303,9 @@ local sigFloat = {name="signal-float",type="virtual"}
 ---@type SignalID
 local sigHex = {name="signal-hex",type="virtual"}
 
+---@type SignalID
+local sigPrecision = {name="signal-precision",type="virtual"}
+
 ---@param entity LuaEntity
 ---@param cache NixieCache
 local function onTickController(entity,cache)
@@ -317,6 +320,8 @@ local function onTickController(entity,cache)
   local double = float_v == 2
   
   local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
+
+  local precision = entity.get_signal(sigPrecision, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red)
 
   local selected = get_selected_signal(control)
   ---@type number, number
@@ -335,16 +340,17 @@ local function onTickController(entity,cache)
   end
 
   local use_colors = cache.control.use_colors
-  local flags = (float_v) + (hex and 4 or 0) + (use_colors and 8 or 0)
+  local flags = (float_v) + (hex and 4 or 0) + (use_colors and 8 or 0) + ((precision > 0) and 16 or 0)
 
   --if value or any flags changed, or always update while use_colors...
   if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
     cache.flags = flags
     cache.lastvalue = v
 
-    
     local format = "%i"
-    if float then
+    if precision > 0 then
+      format = "%." .. precision .. "f" -- Idk why y'all use G below, but precision needs f to work properly. Perhaps G should be changed? Unless the intent is to default to scientific notation for floats
+    elseif float then
       format = "%G"
       if hex then
         format = "%A"

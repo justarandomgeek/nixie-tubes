@@ -31,3 +31,4 @@ create_symsignal("at",'c')
 
 create_symsignal("float",'x')
 create_symsignal("hex",'x')
+create_symsignal("precision",'x')
