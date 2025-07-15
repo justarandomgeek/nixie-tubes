@@ -2,6 +2,10 @@
 Version: 2.0.3
 Date: ????
   Changes:
+    - updated icons of remaining extra virtual signals to match 2.0 style
+    - fix colors on alpha nixies
+    - enable/disable conditions now work on alpha nixies to turn the dispaly off entirely
+    - enable/disable condition now forced always-on for numeric nixies (used for tracking when signals changes)
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.2
 Date: 2025-02-11
