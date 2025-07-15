@@ -16,7 +16,7 @@ local function create_symsignal(name,sort)
       type = "virtual-signal",
       name = "signal-" .. name,
       icon = "__nixie-tubes__/graphics/signal/signal_" .. name .. ".png",
-      icon_size = 32,
+      icon_size = 64,
       subgroup = "virtual-signal-symbol",
       order = "e[symbols]-" .. sort .. "[" .. name .. "]"
     }
