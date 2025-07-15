@@ -7,6 +7,13 @@ data:extend{
     order = "nixie-slashed-zero",
   },
   {
+    type = "bool-setting",
+    name = "nixie-tube-bloom-glow",
+    setting_type = "startup",
+    default_value = true,
+    order = "nixie-bloom-glow",
+  },
+  {
     type = "int-setting",
     name = "nixie-tube-update-speed-alpha",
     setting_type = "runtime-global",
