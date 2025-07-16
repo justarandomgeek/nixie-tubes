@@ -301,6 +301,73 @@ end
 ---@type SignalID
 local sigFloat = {name="signal-float",type="virtual"}
 
+---@class (exact) FormatType
+---@field read fun(entity:LuaEntity, selected:SignalID):number # Read a numeric value from the entity
+---@field format fun(value:number, hex:boolean):string
+
+---@type {[int32]:FormatType}
+local formatType = {
+  default = { -- everything else
+    read = function (entity, selected)
+      return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+    end,
+    format = function (value, hex)
+      if hex then
+        if value < 0 then value = value + 0x100000000 end
+        return string.format("%X", value)
+      end
+      return string.format("%i", value)
+    end,
+  },
+  [1] = { --float
+    read = function (entity, selected)
+      return float_from_int(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green))
+    end,
+    format = function (value, hex)
+      if hex then
+        return string.format("%A", value)
+      end
+      return string.format("%G", value)
+    end,
+  },
+  [2] = { -- double
+    read = function (entity, selected)
+      return double_from_ints(
+        entity.get_signal(selected, defines.wire_connector_id.circuit_green),
+        entity.get_signal(selected, defines.wire_connector_id.circuit_red))
+    end,
+    format = function (value, hex)
+      if hex then
+        return string.format("%A", value)
+      end
+      return string.format("%.14G", value)
+    end,
+  },
+}
+
+-- 10 based fractions in type codes 10,100,1000,...
+for i = 1,9,1 do
+  local base = 10^i
+  formatType[base] = {
+    read = function (entity, selected)
+      return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
+    end,
+    format = formatType[2].format, -- just use general double format?
+  }
+end
+
+-- 2 based fractions in type codes 4,8,16,32,...
+for i = 2,31,1 do
+  local base = 2^i
+  formatType[base] = {
+    read = function (entity, selected)
+      return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
+    end,
+    format = formatType[2].format, -- just use general double format?
+  }
+end
+
+
 ---@type SignalID
 local sigHex = {name="signal-hex",type="virtual"}
 
@@ -313,56 +380,28 @@ local function onTickController(entity,cache)
     cache.control = control
   end
 
-  local float_v = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
-  local float = float_v == 1
-  local double = float_v == 2
-  
+  local formatCode = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+  local numFormat = formatType[formatCode] or formatType.default
+
   local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
 
   local selected = get_selected_signal(control)
-  ---@type number, number
+  ---@type number
   local v = 0
   if selected then
-    if double then
-      v = double_from_ints(
-        entity.get_signal(selected, defines.wire_connector_id.circuit_green),
-        entity.get_signal(selected, defines.wire_connector_id.circuit_red))
-    else
-      v = entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
-      if float then
-        v = float_from_int(v)
-      end
-    end
+    v = numFormat.read(entity, selected)
   end
 
   local use_colors = cache.control.use_colors
-  local flags = (float_v) + (hex and 4 or 0) + (use_colors and 8 or 0)
+  -- flags up beyond 32b values to keep space free for the whole format code range
+  local flags = (formatCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
 
   --if value or any flags changed, or always update while use_colors...
   if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
     cache.flags = flags
     cache.lastvalue = v
 
-    
-    local format = "%i"
-    if float then
-      format = "%G"
-      if hex then
-        format = "%A"
-      end
-    elseif double then
-      format = "%.14G"
-      if hex then
-        format = "%A"
-      end
-    else
-      if hex then
-        format = "%X"
-        if v < 0 then v = v + 0x100000000 end
-      end
-    end
-
-    displayValString(entity,format:format(v),control.use_colors and control.color or nil)
+    displayValString(entity,numFormat.format(v, hex),control.use_colors and control.color or nil)
   end
 
 end
