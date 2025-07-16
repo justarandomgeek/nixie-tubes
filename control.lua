@@ -307,13 +307,23 @@ local sigFloat = {name="signal-float",type="virtual"}
 
 ---@type {[int32]:FormatType}
 local formatType = {
-  default = { -- everything else
+  default = { -- everything else: int32
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
     end,
     format = function (value, hex)
       if hex then
-        if value < 0 then value = value + 0x100000000 end
+        return string.format("%s%X", value<0 and"-" or "", math.abs(value))
+      end
+      return string.format("%i", value)
+    end,
+  },
+  [-1] = { -- uint32
+    read = function (entity, selected)
+      return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green))
+    end,
+    format = function (value, hex)
+      if hex then
         return string.format("%X", value)
       end
       return string.format("%i", value)
@@ -348,9 +358,15 @@ local formatType = {
 -- 10 based fractions in type codes 10,100,1000,...
 for i = 1,9,1 do
   local base = 10^i
-  formatType[base] = {
+  formatType[base] = { -- signed
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
+    end,
+    format = formatType[2].format, -- just use general double format?
+  }
+  formatType[-base] = { -- unsigned
+    read = function (entity, selected)
+      return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
     end,
     format = formatType[2].format, -- just use general double format?
   }
@@ -359,9 +375,16 @@ end
 -- 2 based fractions in type codes 4,8,16,32,...
 for i = 2,31,1 do
   local base = 2^i
-  formatType[base] = {
+  formatType[base] = { -- signed
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
+    end,
+    format = formatType[2].format, -- just use general double format?
+  }
+
+  formatType[-base] = { -- unsigned
+    read = function (entity, selected)
+      return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
     end,
     format = formatType[2].format, -- just use general double format?
   }
