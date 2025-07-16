@@ -248,6 +248,37 @@ local function float_from_int(i)
   return sign * math.ldexp(bit32.bor(significand,0x00800000),exponent-23) --[[normal numbers]]
 end
 
+---@param i integer
+---@param divisor integer
+---@return float
+local function float_from_10_int(i, divisor)
+  return i/divisor
+end
+
+---@param i integer
+---@param fracval integer
+---@return float
+local function float_from_2_int(i, fracval)
+  -- signed 32-bit, so account for negative values
+  if i >= 0x80000000 then
+    i = i - 0x100000000
+  end
+  return i / fracval
+end
+
+---@param high uint32 -- integer part (most significant bits)
+---@param low uint32  -- fractional part (least significant bits)
+---@return float
+local function float_from_3232_ints(high, low)
+  -- interpret high as signed 32-bit
+  if high >= 0x80000000 then
+    high = high - 0x100000000
+  end
+
+  -- scale integer part and fractional part separately
+  return high + (low / 0x100000000)
+end
+
 ---@param high integer
 ---@param low integer
 ---@return double
@@ -298,11 +329,19 @@ local function getAlphaSignals(entity)
   return ch
 end
 
+---@param x integer
+---@return boolean
+function is_power_of_two(x)
+  return (x > 0) and bit32.band(x, (x - 1)) == 0
+end
+
 ---@type SignalID
 local sigFloat = {name="signal-float",type="virtual"}
 
 ---@type SignalID
 local sigHex = {name="signal-hex",type="virtual"}
+
+local max_fixed_v = 2 ^ 32
 
 ---@param entity LuaEntity
 ---@param cache NixieCache
@@ -316,7 +355,10 @@ local function onTickController(entity,cache)
   local float_v = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
   local float = float_v == 1
   local double = float_v == 2
-  
+  local fixed3232 = float_v == 3
+  local fixed10based = float_v >= 10 and float_v%10 == 0
+  local fixed2based = float_v >= 4 and float_v <= max_fixed_v and is_power_of_two(float_v)
+
   local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
 
   local selected = get_selected_signal(control)
@@ -327,10 +369,18 @@ local function onTickController(entity,cache)
       v = double_from_ints(
         entity.get_signal(selected, defines.wire_connector_id.circuit_green),
         entity.get_signal(selected, defines.wire_connector_id.circuit_red))
+    elseif fixed3232 then
+      v = float_from_3232_ints(
+        entity.get_signal(selected, defines.wire_connector_id.circuit_green),
+        entity.get_signal(selected, defines.wire_connector_id.circuit_red))
     else
       v = entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
       if float then
         v = float_from_int(v)
+      elseif fixed10based then
+        v = float_from_10_int(v, float_v)
+      elseif fixed2based then
+        v = float_from_2_int(v, float_v)
       end
     end
   end
@@ -343,9 +393,8 @@ local function onTickController(entity,cache)
     cache.flags = flags
     cache.lastvalue = v
 
-    
     local format = "%i"
-    if float then
+    if float or fixed3232 or fixed10based or fixed2based then
       format = "%G"
       if hex then
         format = "%A"
