@@ -1,3 +1,4 @@
+Copyright (c) 2020 justarandomgeek
 Copyright (c) 2017 Clarence "Sparr" Risher
 Copyright (c) 2015 GopherAtl
 
