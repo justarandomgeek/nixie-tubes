@@ -1,0 +1,5 @@
+{
+    "virtual-signal": [
+        ["signal-float", "signal-number-type"]
+    ]
+}

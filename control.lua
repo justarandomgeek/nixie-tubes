@@ -299,14 +299,14 @@ local function getAlphaSignals(entity)
 end
 
 ---@type SignalID
-local sigFloat = {name="signal-float",type="virtual"}
+local sigNumType = {name="signal-number-type",type="virtual"}
 
----@class (exact) FormatType
+---@class (exact) NumberType
 ---@field read fun(entity:LuaEntity, selected:SignalID):number # Read a numeric value from the entity
 ---@field format fun(value:number, hex:boolean):string
 
----@type {[int32]:FormatType}
-local formatType = {
+---@type {[int32]:NumberType}
+local numberType = {
   default = { -- everything else: int32
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
@@ -379,13 +379,13 @@ end
 for i = 1,9,1 do
   local format = fixed_format(i, math.ceil(i/1.2))
   local base = 10^i
-  formatType[base] = { -- signed
+  numberType[base] = { -- signed
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
     end,
     format = format
   }
-  formatType[-base] = { -- unsigned
+  numberType[-base] = { -- unsigned
     read = function (entity, selected)
       return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
     end,
@@ -397,14 +397,14 @@ end
 for i = 2,31,1 do
   local format = fixed_format(math.ceil(i/3.32), math.ceil(i/4))
   local base = 2^i
-  formatType[base] = { -- signed
+  numberType[base] = { -- signed
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
     end,
     format = format,
   }
 
-  formatType[-base] = { -- unsigned
+  numberType[-base] = { -- unsigned
     read = function (entity, selected)
       return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
     end,
@@ -425,8 +425,8 @@ local function onTickController(entity,cache)
     cache.control = control
   end
 
-  local formatCode = entity.get_signal(sigFloat, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
-  local numFormat = formatType[formatCode] or formatType.default
+  local typeCode = entity.get_signal(sigNumType, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+  local numType = numberType[typeCode] or numberType.default
 
   local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
 
@@ -434,19 +434,19 @@ local function onTickController(entity,cache)
   ---@type number
   local v = 0
   if selected then
-    v = numFormat.read(entity, selected)
+    v = numType.read(entity, selected)
   end
 
   local use_colors = cache.control.use_colors
   -- flags up beyond 32b values to keep space free for the whole format code range
-  local flags = bit32.band(formatCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
+  local flags = bit32.band(typeCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
 
   --if value or any flags changed, or always update while use_colors...
   if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
     cache.flags = flags
     cache.lastvalue = v
 
-    displayValString(entity,numFormat.format(v, hex),control.use_colors and control.color or nil)
+    displayValString(entity,numType.format(v, hex),control.use_colors and control.color or nil)
   end
 
 end

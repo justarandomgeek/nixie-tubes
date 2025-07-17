@@ -8,7 +8,6 @@ data:extend(
 )
 
 
-local symcount=1
 local function create_symsignal(name,sort)
   data:extend(
   {
@@ -21,7 +20,6 @@ local function create_symsignal(name,sort)
       order = "e[symbols]-" .. sort .. "[" .. name .. "]"
     }
   })
-  symcount = symcount + 1
 end
 
 --extended symbols
@@ -29,5 +27,5 @@ create_symsignal("curopen",'a-ca')
 create_symsignal("curclose",'a-cb')
 create_symsignal("at",'c')
 
-create_symsignal("float",'x')
+create_symsignal("number-type",'x')
 create_symsignal("hex",'x')
