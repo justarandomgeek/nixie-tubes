@@ -285,7 +285,7 @@ local function getAlphaSignals(entity)
 
   if signals and #signals > 0 then
     for _,s in pairs(signals) do
-      if signalCharMap[s.signal.name] then
+      if s.signal.type == "virtual" and signalCharMap[s.signal.name] then
         if ch then
           return "err"
         else
