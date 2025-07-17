@@ -313,7 +313,7 @@ local formatType = {
     end,
     format = function (value, hex)
       if hex then
-        return string.format("%s%X", value<0 and"-" or "", math.abs(value))
+        return string.format("%s%X", value<0 and "-" or "", math.abs(value))
       end
       return string.format("%i", value)
     end,
@@ -355,38 +355,60 @@ local formatType = {
   },
 }
 
+---@param dec_precision integer
+---@param hex_precision integer
+---@return fun(value:number, hex:boolean):string
+local function fixed_format(dec_precision, hex_precision)
+  local decfmt = string.format("%%.%if", dec_precision)
+  local hexfmt = string.format("%%s%%X.%%0%iX", hex_precision)
+  return function(value, hex)
+      if hex then
+        local sign = value<0 and "-" or ""
+        value = math.abs(value)
+        local ipart = math.floor(value)
+        local fpart = math.fmod(value, 1) * (16^hex_precision)
+        return string.format(hexfmt, sign, ipart, fpart)
+      end
+      return string.format(decfmt, value)
+  end
+  
+end
+
+
 -- 10 based fractions in type codes 10,100,1000,...
 for i = 1,9,1 do
+  local format = fixed_format(i, math.ceil(i/1.2))
   local base = 10^i
   formatType[base] = { -- signed
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
     end,
-    format = formatType[2].format, -- just use general double format?
+    format = format
   }
   formatType[-base] = { -- unsigned
     read = function (entity, selected)
       return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
     end,
-    format = formatType[2].format, -- just use general double format?
+    format = format,
   }
 end
 
 -- 2 based fractions in type codes 4,8,16,32,...
 for i = 2,31,1 do
+  local format = fixed_format(math.ceil(i/3.32), math.ceil(i/4))
   local base = 2^i
   formatType[base] = { -- signed
     read = function (entity, selected)
       return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
     end,
-    format = formatType[2].format, -- just use general double format?
+    format = format,
   }
 
   formatType[-base] = { -- unsigned
     read = function (entity, selected)
       return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
     end,
-    format = formatType[2].format, -- just use general double format?
+    format = format,
   }
 end
 
@@ -417,7 +439,7 @@ local function onTickController(entity,cache)
 
   local use_colors = cache.control.use_colors
   -- flags up beyond 32b values to keep space free for the whole format code range
-  local flags = (formatCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
+  local flags = bit32.band(formatCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
 
   --if value or any flags changed, or always update while use_colors...
   if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
