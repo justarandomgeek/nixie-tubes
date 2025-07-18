@@ -260,15 +260,21 @@ end
 local sigNumType = {name="signal-number-type",type="virtual"}
 
 ---@class (exact) NixieTubesNumberType
----@field read fun(entity:LuaEntity, selected:SignalID):number # Read a numeric value from the entity
+---@field split_read? false
+---@field read fun(value:int32):number
 ---@field format fun(value:number, hex:boolean):string
 
----@type {[int32]:NixieTubesNumberType}
+---@class (exact) NixieTubesSplitNumberType
+---@field split_read true
+---@field read fun(green:int32, red:int32):number
+---@field format fun(value:number, hex:boolean):string
+
+---@type {[int32]:(NixieTubesNumberType|NixieTubesSplitNumberType)}
 local numberType = {
   ---@type NixieTubesNumberType
   default = { -- everything else: int32
-    read = function (entity, selected)
-      return entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
+    read = function (value)
+      return value
     end,
     format = function (value, hex)
       if hex then
@@ -278,8 +284,8 @@ local numberType = {
     end,
   },
   [-1] = { -- uint32
-    read = function (entity, selected)
-      return bit32.band(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green))
+    read = function (value)
+      return bit32.band(value)
     end,
     format = function (value, hex)
       if hex then
@@ -289,8 +295,8 @@ local numberType = {
     end,
   },
   [1] = { --float
-    read = function (entity, selected)
-      return (sunpack(">f", spack(">i4", entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green))))
+    read = function (value)
+      return (sunpack(">f", spack(">i4", value)))
     end,
     format = function (value, hex)
       if hex then
@@ -300,11 +306,9 @@ local numberType = {
     end,
   },
   [2] = { -- double
-    read = function (entity, selected)
-      return (sunpack(">d", spack(">i4i4",
-        entity.get_signal(selected, dwire_connector_id.circuit_green),
-        entity.get_signal(selected, dwire_connector_id.circuit_red)
-      )))
+    split_read = true,
+    read = function (green, red)
+      return (sunpack(">d", spack(">i4i4", green, red)))
     end,
     format = function (value, hex)
       if hex then
@@ -340,14 +344,14 @@ for i = 1,9,1 do
   local format = fixed_format(i, math.ceil(i/1.2))
   local base = 10^i
   numberType[base] = { -- signed
-    read = function (entity, selected)
-      return entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green) / base
+    read = function (value)
+      return value / base
     end,
     format = format
   }
   numberType[-base] = { -- unsigned
-    read = function (entity, selected)
-      return bit32.band(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)) / base
+    read = function (value)
+      return bit32.band(value) / base
     end,
     format = format,
   }
@@ -358,15 +362,15 @@ for i = 2,31,1 do
   local format = fixed_format(math.ceil(i/3.32), math.ceil(i/4))
   local base = 2^i
   numberType[base] = { -- signed
-    read = function (entity, selected)
-      return entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green) / base
+    read = function (value)
+      return value / base
     end,
     format = format,
   }
 
   numberType[-base] = { -- unsigned
-    read = function (entity, selected)
-      return bit32.band(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)) / base
+    read = function (value)
+      return bit32.band(value) / base
     end,
     format = format,
   }
@@ -394,7 +398,14 @@ local function onTickController(entity,cache)
   ---@type number
   local v = 0
   if selected then
-    v = numType.read(entity, selected)
+    if numType.split_read then
+      v = numType.read(
+        entity.get_signal(selected, dwire_connector_id.circuit_green),
+        entity.get_signal(selected, dwire_connector_id.circuit_red)
+      )
+    else
+      v = numType.read(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green))
+    end
   end
 
   local use_colors = cache.control.use_colors
