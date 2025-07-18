@@ -1,7 +1,15 @@
 local sunpack = string.unpack
 local spack = string.pack
 local sformat = string.format
+local smatch = string.match
+local bband = bit32.band
+local mabs = math.abs
+local mceil = math.ceil
+local mfloor = math.floor
+local mfmod = math.fmod
 local dwire_connector_id = defines.wire_connector_id
+local pairs = pairs
+local next = next
 
 ---@class NixieStorage
 ---@field alphas {[integer]:LuaEntity?}
@@ -118,7 +126,7 @@ local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
     if not new_state or off_states[new_state] then
       new_state = "off"
-    elseif string.match(new_state, "[^A-Z0-9.?!(){}*@/+[%]%-%%]") then -- any undisplayable characters
+    elseif smatch(new_state, "[^A-Z0-9.?!(){}*@/+[%]%-%%]") then -- any undisplayable characters
       new_state = "err"
     else -- and a few chars need renames...
       new_state = state_names[new_state] or new_state
@@ -286,7 +294,7 @@ local numberType = {
     end,
     format = function (value, hex)
       if hex then
-        return sformat("%s%X", value<0 and "-" or "", math.abs(value))
+        return sformat("%s%X", value<0 and "-" or "", mabs(value))
       end
       return sformat("%i", value)
     end,
@@ -294,7 +302,7 @@ local numberType = {
   [-1] = { -- uint32
     name = "UINT32",
     read = function (value)
-      return bit32.band(value)
+      return bband(value)
     end,
     format = function (value, hex)
       if hex then
@@ -340,9 +348,9 @@ local function fixed_format(dec_precision, hex_precision)
   return function(value, hex)
       if hex then
         local sign = value<0 and "-" or ""
-        value = math.abs(value)
-        local ipart = math.floor(value)
-        local fpart = math.fmod(value, 1) * (16^hex_precision)
+        value = mabs(value)
+        local ipart = mfloor(value)
+        local fpart = mfmod(value, 1) * (16^hex_precision)
         return sformat(hexfmt, sign, ipart, fpart)
       end
       return sformat(decfmt, value)
@@ -353,19 +361,19 @@ end
 
 -- 10 based fractions in type codes 10,100,1000,...
 for i = 1,9,1 do
-  local format = fixed_format(i, math.ceil(i/1.2))
+  local format = fixed_format(i, mceil(i/1.2))
   local base = 10^i
   numberType[base] = { -- signed
-    name = string.format("FIXED /%i", base),
+    name = sformat("FIXED /%i", base),
     read = function (value)
       return value / base
     end,
     format = format
   }
   numberType[-base] = { -- unsigned
-    name = string.format("UFIXED /%i", base),
+    name = sformat("UFIXED /%i", base),
     read = function (value)
-      return bit32.band(value) / base
+      return bband(value) / base
     end,
     format = format,
   }
@@ -373,10 +381,10 @@ end
 
 -- 2 based fractions in type codes 4,8,16,32,...
 for i = 2,31,1 do
-  local format = fixed_format(math.ceil(i/3.32), math.ceil(i/4))
+  local format = fixed_format(mceil(i/3.32), mceil(i/4))
   local base = 2^i
   numberType[base] = { -- signed
-    name = string.format("FIXED /%i", base),
+    name = sformat("FIXED /%i", base),
     read = function (value)
       return value / base
     end,
@@ -384,21 +392,21 @@ for i = 2,31,1 do
   }
 
   numberType[-base] = { -- unsigned
-    name = string.format("UFIXED /%i", base),
+    name = sformat("UFIXED /%i", base),
     read = function (value)
-      return bit32.band(value) / base
+      return bband(value) / base
     end,
     format = format,
   }
 end
 
-numberType[string.unpack(">i4",string.pack(">c4", "ASCI"))] = {
+numberType[sunpack(">i4",spack(">c4", "ASCI"))] = {
   name = "ASCII",
   read = function (value)
     return value
   end,
   format = function (value, hex)
-    return (string.unpack(">c4", string.pack(">i4", value)))
+    return (sunpack(">c4", spack(">i4", value)))
   end
 }
 
@@ -416,12 +424,12 @@ do
       end
       if hex then
         -- \1 for ERR character
-        return string.format("TYPE \1 %X", value)
+        return sformat("TYPE \1 %X", value)
       end
-      return string.format("TYPE \1 %i", value)
+      return sformat("TYPE \1 %i", value)
     end
   }
-  numberType[string.unpack(">i4",string.pack(">c4", "TYPE"))] = typecode
+  numberType[sunpack(">i4",spack(">c4", "TYPE"))] = typecode
   numberType.typecode = typecode
 end
 
@@ -463,7 +471,7 @@ local function onTickController(entity,cache)
 
   local use_colors = cache.control.use_colors
   -- flags up beyond 32b values to keep space free for the whole format code range
-  local flags = bit32.band(typeCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
+  local flags = bband(typeCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
 
   --if value or any flags changed, or always update while use_colors...
   if cache.lastvalue ~= v or use_colors or flags ~= cache.flags then
