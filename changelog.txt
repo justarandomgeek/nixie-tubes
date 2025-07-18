@@ -8,6 +8,7 @@ Date: ????
     - enable/disable condition now forced always-on for numeric nixies (used for tracking when signals changes)
     - renamed `signal-float` to `signal-number-type`
     - added fixed-point and unsigned number types
+    - added four char ASCII and Typecode types. `signal-number-type` always renders as Typecode.
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.2
 Date: 2025-02-11
