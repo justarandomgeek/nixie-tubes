@@ -400,7 +400,7 @@ for i = 2,31,1 do
 end
 
 numberType[sunpack(">i4",spack(">c4", "ASCI"))] = {
-  name = "ASCII",
+  name = "4CH ASCII",
   read = function (value)
     return value
   end,
