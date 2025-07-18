@@ -7,7 +7,8 @@ local mabs = math.abs
 local mceil = math.ceil
 local mfloor = math.floor
 local mfmod = math.fmod
-local dwire_connector_id = defines.wire_connector_id
+local dwcircuit_green = defines.wire_connector_id.circuit_green
+local dwcircuit_red = defines.wire_connector_id.circuit_red
 local pairs = pairs
 local next = next
 
@@ -131,8 +132,8 @@ local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
     new_state = state_names[new_state] or "nixie-tube-sprite-err"
 
-    local obj = cache.sprites[key]
-    if not (obj and obj.valid) then
+    local sprite = cache.sprites[key]
+    if not (sprite and sprite.valid) then
       cache.lastcolor[key] = nil
 
       local num = validEntityName[nixie.name]
@@ -143,7 +144,7 @@ local function setStates(nixie,cache,newstates,newcolor)
       else
         position = {x=-9/64+((key-1)*20/64), y=3/64} -- sprite offset
       end
-      obj = rendering.draw_sprite{
+      sprite = rendering.draw_sprite{
         sprite = new_state,
         target = { entity = nixie, offset = position},
         surface = nixie.surface,
@@ -153,25 +154,26 @@ local function setStates(nixie,cache,newstates,newcolor)
         render_layer = "object",
         }
 
-      cache.sprites[key] = obj
+      cache.sprites[key] = sprite
     end
 
     if nixie.energy > 70 or is_simulation then
-      obj.sprite = new_state
+      sprite.sprite = new_state
 
       local color = newcolor
       if not color then color = {r=1.0,  g=0.6,  b=0.2, a=1.0} end
       if new_state == "nixie-tube-sprite-off" then color={r=1.0,  g=1.0,  b=1.0, a=1.0} end
 
-      if not (cache.lastcolor[key] and (cache.lastcolor[key].r == color.r) and (cache.lastcolor[key].g == color.g) and (cache.lastcolor[key].b == color.b) and (cache.lastcolor[key].a == color.a)) then
+      local lastcolor = cache.lastcolor[key]
+      if not (lastcolor and (lastcolor.r == color.r) and (lastcolor.g == color.g) and (lastcolor.b == color.b) and (lastcolor.a == color.a)) then
         cache.lastcolor[key] = color
-        obj.color = color
+        sprite.color = color
       end
     else
-      if obj.sprite ~= "nixie-tube-sprite-off" then
-        obj.sprite = "nixie-tube-sprite-off"
+      if sprite.sprite ~= "nixie-tube-sprite-off" then
+        sprite.sprite = "nixie-tube-sprite-off"
       end
-      obj.color = {r=1.0,  g=1.0,  b=1.0, a=1.0}
+      sprite.color = {r=1.0,  g=1.0,  b=1.0, a=1.0}
       cache.lastcolor[key] = nil
     end
   end
@@ -212,9 +214,11 @@ end
 local function displayValString(entity,vs,color)
   local offset = vs and #vs or 0
   while entity do
+    local unit_number = entity.unit_number
+    ---@cast unit_number -?
     ---@type LuaEntity?
-    local nextdigit = storage.nextdigit[entity.unit_number]
-    local cache = getCache(entity.unit_number)
+    local nextdigit = storage.nextdigit[unit_number]
+    local cache = getCache(unit_number)
     local chcount = validEntityName[entity.name]
 
     if not vs then
@@ -238,7 +242,7 @@ local function displayValString(entity,vs,color)
         end
       else
         --when a nixie in the middle is removed, it doesn't have the unit_number to it's right to remove itself
-        storage.nextdigit[entity.unit_number] = nil
+        storage.nextdigit[unit_number] = nil
         nextdigit = nil
       end
     end
@@ -250,7 +254,7 @@ end
 ---@param entity LuaEntity
 ---@return string?
 local function getAlphaSignals(entity)
-  local signals = entity.get_signals(dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
+  local signals = entity.get_signals(dwcircuit_red, dwcircuit_green)
   ---@type string?
   local ch
 
@@ -284,59 +288,62 @@ local sigNumType = {name="signal-number-type",type="virtual"}
 ---@field read fun(green:int32, red:int32):number
 ---@field format fun(value:number, hex:boolean):string
 
----@type {[int32|string]:(NixieTubesNumberType|NixieTubesSplitNumberType)}
-local numberType = {
-  default = { -- everything else: int32
-    name = "INT32",
-    read = function (value)
-      return value
-    end,
-    format = function (value, hex)
-      if hex then
-        return sformat("%s%X", value<0 and "-" or "", mabs(value))
-      end
-      return sformat("%i", value)
-    end,
-  },
-  [-1] = { -- uint32
-    name = "UINT32",
-    read = function (value)
-      return bband(value)
-    end,
-    format = function (value, hex)
-      if hex then
-        return sformat("%X", value)
-      end
-      return sformat("%i", value)
-    end,
-  },
-  [1] = { --float
-    name = "FLOAT",
-    read = function (value)
-      return (sunpack(">f", spack(">i4", value)))
-    end,
-    format = function (value, hex)
-      if hex then
-        return sformat("%A", value)
-      end
-      return sformat("%G", value)
-    end,
-  },
-  [2] = { -- double
-    name = "DOUBLE",
-    split_read = true,
-    read = function (green, red)
-      return (sunpack(">d", spack(">i4i4", green, red)))
-    end,
-    format = function (value, hex)
-      if hex then
-        return sformat("%A", value)
-      end
-      return sformat("%.14G", value)
-    end,
-  },
+---@type {[int32]:(NixieTubesNumberType|NixieTubesSplitNumberType)}
+local numberType = {}
+
+---@type NixieTubesNumberType
+local numberTypeDefault = { -- everything else: int32
+  name = "INT32",
+  read = function (value)
+    return value
+  end,
+  format = function (value, hex)
+    if hex then
+      return sformat("%s%X", value<0 and "-" or "", mabs(value))
+    end
+    return sformat("%i", value)
+  end,
 }
-numberType[0] = numberType.default
+numberType[0] = numberTypeDefault
+
+numberType[-1] = { -- uint32
+  name = "UINT32",
+  read = function (value)
+    return bband(value)
+  end,
+  format = function (value, hex)
+    if hex then
+      return sformat("%X", value)
+    end
+    return sformat("%i", value)
+  end,
+}
+numberType[1] = { --float
+  name = "FLOAT",
+  read = function (value)
+    return (sunpack(">f", spack(">i4", value)))
+  end,
+  format = function (value, hex)
+    if hex then
+      return sformat("%A", value)
+    end
+    return sformat("%G", value)
+  end,
+}
+numberType[2] = { -- double
+  name = "DOUBLE",
+  split_read = true,
+  read = function (green, red)
+    return (sunpack(">d", spack(">i4i4", green, red)))
+  end,
+  format = function (value, hex)
+    if hex then
+      return sformat("%A", value)
+    end
+    return sformat("%.14G", value)
+  end,
+}
+
 
 ---@param dec_precision integer
 ---@param hex_precision integer
@@ -409,28 +416,27 @@ numberType[sunpack(">i4",spack(">c4", "ASCI"))] = {
   end
 }
 
-do
-  ---@type NixieTubesNumberType
-  local typecode = {
-    name = "TYPECODE",
-    read = function (value)
-      return value
-    end,
-    format = function (value, hex)
-      local numtype = numberType[value]
-      if numtype then
-        return numtype.name
-      end
-      if hex then
-        -- \1 for ERR character
-        return sformat("TYPE \1 %X", value)
-      end
-      return sformat("TYPE \1 %i", value)
+
+---@type NixieTubesNumberType
+local numberTypeTypecode = {
+  name = "TYPECODE",
+  read = function (value)
+    return value
+  end,
+  format = function (value, hex)
+    local numtype = numberType[value]
+    if numtype then
+      return numtype.name
     end
-  }
-  numberType[sunpack(">i4",spack(">c4", "TYPE"))] = typecode
-  numberType.typecode = typecode
-end
+    if hex then
+      -- \1 for ERR character
+      return sformat("TYPE \1 %X", value)
+    end
+    return sformat("TYPE \1 %i", value)
+  end
+}
+numberType[sunpack(">i4",spack(">c4", "TYPE"))] = numberTypeTypecode
+
 
 
 ---@type SignalID
@@ -445,10 +451,10 @@ local function onTickController(entity,cache)
     cache.control = control
   end
 
-  local typeCode = entity.get_signal(sigNumType, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
-  local numType = numberType[typeCode] or numberType.default
+  local typeCode = entity.get_signal(sigNumType, dwcircuit_red, dwcircuit_green)
+  local numType = numberType[typeCode] or numberTypeDefault
 
-  local hex = entity.get_signal(sigHex, dwire_connector_id.circuit_green, dwire_connector_id.circuit_red) ~= 0
+  local hex = entity.get_signal(sigHex, dwcircuit_green, dwcircuit_red) ~= 0
 
   local selected = get_selected_signal(control)
   ---@type number
@@ -456,15 +462,15 @@ local function onTickController(entity,cache)
   if selected then
     -- force type on the typecode signal to be type enum...
     if selected.quality == sigNumType.quality and selected.type==sigNumType.type and selected.name==sigNumType.name then
-      numType = numberType.typecode
+      numType = numberTypeTypecode
     end
     if numType.split_read then
       v = numType.read(
-        entity.get_signal(selected, dwire_connector_id.circuit_green),
-        entity.get_signal(selected, dwire_connector_id.circuit_red)
+        entity.get_signal(selected, dwcircuit_green),
+        entity.get_signal(selected, dwcircuit_red)
       )
     else
-      v = numType.read(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green))
+      v = numType.read(entity.get_signal(selected, dwcircuit_red, dwcircuit_green))
     end
   end
 
