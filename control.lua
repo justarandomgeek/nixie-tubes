@@ -1,3 +1,8 @@
+local sunpack = string.unpack
+local spack = string.pack
+local sformat = string.format
+local dwire_connector_id = defines.wire_connector_id
+
 ---@class NixieStorage
 ---@field alphas {[integer]:LuaEntity?}
 ---@field next_alpha? integer
@@ -222,64 +227,10 @@ local function displayValString(entity,vs,color)
   end
 end
 
----@param i integer
----@return float
-local function float_from_int(i)
-  local sign = bit32.btest(i,0x80000000) and -1 or 1
-  local exponent = bit32.rshift(bit32.band(i,0x7F800000),23)-127
-  local significand = bit32.band(i,0x007FFFFF)
-
-  if exponent == 128 then
-    if significand == 0 then
-      return sign/0 --[[infinity]]
-    else
-      return 0/0 --[[nan]]
-    end
-  end
-
-  if exponent == -127 then
-    if significand == 0 then
-      return sign * 0 --[[zero]]
-    else
-      return sign * math.ldexp(significand,-149) --[[denormal numbers]]
-    end
-  end
-
-  return sign * math.ldexp(bit32.bor(significand,0x00800000),exponent-23) --[[normal numbers]]
-end
-
----@param high integer
----@param low integer
----@return double
-local function double_from_ints(high, low)
-  local sign = bit32.btest(high,0x80000000) and -1 or 1
-  local exponent = bit32.rshift(bit32.band(high,0x7FF00000),20)-1023
-  -- have to use regular math to reassemble this becuase it's so long
-  local significand = (bit32.band(high,0x000FFFFF) * 0x100000000) + low
-
-  if exponent == 1024 then
-    if significand == 0 then
-      return sign/0 --[[infinity]]
-    else
-      return 0/0 --[[nan]]
-    end
-  end
-
-  if exponent == -1023 then
-    if significand == 0 then
-      return sign * 0 --[[zero]]
-    else
-      return sign * math.ldexp(significand,-1074) --[[denormal numbers]]
-    end
-  end
-
-  return sign * math.ldexp(significand+0x10000000000000,exponent-52) --[[normal numbers]]
-end
-
 ---@param entity LuaEntity
 ---@return string?
 local function getAlphaSignals(entity)
-  local signals = entity.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+  local signals = entity.get_signals(dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
   ---@type string
   local ch
 
@@ -301,56 +252,58 @@ end
 ---@type SignalID
 local sigNumType = {name="signal-number-type",type="virtual"}
 
----@class (exact) NumberType
+---@class (exact) NixieTubesNumberType
 ---@field read fun(entity:LuaEntity, selected:SignalID):number # Read a numeric value from the entity
 ---@field format fun(value:number, hex:boolean):string
 
----@type {[int32]:NumberType}
+---@type {[int32]:NixieTubesNumberType}
 local numberType = {
+  ---@type NixieTubesNumberType
   default = { -- everything else: int32
     read = function (entity, selected)
-      return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+      return entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
     end,
     format = function (value, hex)
       if hex then
-        return string.format("%s%X", value<0 and "-" or "", math.abs(value))
+        return sformat("%s%X", value<0 and "-" or "", math.abs(value))
       end
-      return string.format("%i", value)
+      return sformat("%i", value)
     end,
   },
   [-1] = { -- uint32
     read = function (entity, selected)
-      return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green))
+      return bit32.band(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green))
     end,
     format = function (value, hex)
       if hex then
-        return string.format("%X", value)
+        return sformat("%X", value)
       end
-      return string.format("%i", value)
+      return sformat("%i", value)
     end,
   },
   [1] = { --float
     read = function (entity, selected)
-      return float_from_int(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green))
+      return (sunpack(">f", spack(">i4", entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green))))
     end,
     format = function (value, hex)
       if hex then
-        return string.format("%A", value)
+        return sformat("%A", value)
       end
-      return string.format("%G", value)
+      return sformat("%G", value)
     end,
   },
   [2] = { -- double
     read = function (entity, selected)
-      return double_from_ints(
-        entity.get_signal(selected, defines.wire_connector_id.circuit_green),
-        entity.get_signal(selected, defines.wire_connector_id.circuit_red))
+      return (sunpack(">d", spack(">i4i4",
+        entity.get_signal(selected, dwire_connector_id.circuit_green),
+        entity.get_signal(selected, dwire_connector_id.circuit_red)
+      )))
     end,
     format = function (value, hex)
       if hex then
-        return string.format("%A", value)
+        return sformat("%A", value)
       end
-      return string.format("%.14G", value)
+      return sformat("%.14G", value)
     end,
   },
 }
@@ -359,17 +312,17 @@ local numberType = {
 ---@param hex_precision integer
 ---@return fun(value:number, hex:boolean):string
 local function fixed_format(dec_precision, hex_precision)
-  local decfmt = string.format("%%.%if", dec_precision)
-  local hexfmt = string.format("%%s%%X.%%0%iX", hex_precision)
+  local decfmt = sformat("%%.%if", dec_precision)
+  local hexfmt = sformat("%%s%%X.%%0%iX", hex_precision)
   return function(value, hex)
       if hex then
         local sign = value<0 and "-" or ""
         value = math.abs(value)
         local ipart = math.floor(value)
         local fpart = math.fmod(value, 1) * (16^hex_precision)
-        return string.format(hexfmt, sign, ipart, fpart)
+        return sformat(hexfmt, sign, ipart, fpart)
       end
-      return string.format(decfmt, value)
+      return sformat(decfmt, value)
   end
   
 end
@@ -381,13 +334,13 @@ for i = 1,9,1 do
   local base = 10^i
   numberType[base] = { -- signed
     read = function (entity, selected)
-      return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
+      return entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green) / base
     end,
     format = format
   }
   numberType[-base] = { -- unsigned
     read = function (entity, selected)
-      return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
+      return bit32.band(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)) / base
     end,
     format = format,
   }
@@ -399,14 +352,14 @@ for i = 2,31,1 do
   local base = 2^i
   numberType[base] = { -- signed
     read = function (entity, selected)
-      return entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green) / base
+      return entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green) / base
     end,
     format = format,
   }
 
   numberType[-base] = { -- unsigned
     read = function (entity, selected)
-      return bit32.band(entity.get_signal(selected, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)) / base
+      return bit32.band(entity.get_signal(selected, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)) / base
     end,
     format = format,
   }
@@ -425,10 +378,10 @@ local function onTickController(entity,cache)
     cache.control = control
   end
 
-  local typeCode = entity.get_signal(sigNumType, defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
+  local typeCode = entity.get_signal(sigNumType, dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
   local numType = numberType[typeCode] or numberType.default
 
-  local hex = entity.get_signal(sigHex, defines.wire_connector_id.circuit_green, defines.wire_connector_id.circuit_red) ~= 0
+  local hex = entity.get_signal(sigHex, dwire_connector_id.circuit_green, dwire_connector_id.circuit_red) ~= 0
 
   local selected = get_selected_signal(control)
   ---@type number
