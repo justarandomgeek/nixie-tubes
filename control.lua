@@ -474,7 +474,7 @@ local function onTickController(entity,cache)
     end
   end
 
-  local use_colors = cache.control.use_colors
+  local use_colors = control.use_colors
   -- flags up beyond 32b values to keep space free for the whole format code range
   local flags = bband(typeCode) + (hex and 0x100000000 or 0) + (use_colors and 0x200000000 or 0)
 
@@ -483,7 +483,7 @@ local function onTickController(entity,cache)
     cache.flags = flags
     cache.lastvalue = v
 
-    displayValString(entity,numType.format(v, hex),control.use_colors and control.color or nil)
+    displayValString(entity, numType.format(v, hex), use_colors and control.color or nil)
   end
 
 end
@@ -706,16 +706,6 @@ script.on_configuration_changed(function(data)
     RebuildNixies()
   end
 end)
-
-local filters = {
-}
-local names = {}
-for name in pairs(validEntityName) do
-  filters[#filters+1] = {filter="name",name=name}
-  filters[#filters+1] = {filter="ghost_name",name=name}
-  names[#names+1] = name
-end
-
 
 script.on_event(defines.events.on_script_trigger_effect, function (event)
   if event.effect_id == "nixie-created" then
