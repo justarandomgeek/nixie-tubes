@@ -112,7 +112,7 @@ local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
     if not new_state or new_state == "off" then
       new_state = "off"
-    elseif string.match(new_state, "[^A-Z0-9%.%?%!%[%]%(%)%{%}%*%@%/%-%+%%]") then -- any undisplayable characters
+    elseif string.match(new_state, "[^A-Z0-9.?!(){}*@/+[%]%-%%]") then -- any undisplayable characters
       new_state = "err"
     else -- and a few chars need renames...
       new_state = state_names[new_state] or new_state
