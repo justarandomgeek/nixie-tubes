@@ -1,7 +1,7 @@
 local sunpack = string.unpack
 local spack = string.pack
 local sformat = string.format
-local smatch = string.match
+local ssub = string.sub
 local bband = bit32.band
 local mabs = math.abs
 local mceil = math.ceil
@@ -105,15 +105,20 @@ local signalCharMap = {
 }
 
 local state_names = {
+  ["off"] = "off",
+  [" "] = "off",
+  ["\0"] = "off",
+
   ['.'] = "dot",
   ['/'] = "slash",
 }
-
-local off_states = {
-  ["off"] = true,
-  [" "] = true,
-  ["\0"] = true,
-}
+do
+  local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!(){}*@+[]-%"
+  for i = 1, #chars do
+    local c = ssub(chars,i,i)
+    state_names[c] = c
+  end
+end
 
 --sets the state(s) and update the sprite for a nixie
 local is_simulation = script.level.is_simulation
@@ -124,12 +129,10 @@ local is_simulation = script.level.is_simulation
 ---@param newcolor? Color
 local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
-    if not new_state or off_states[new_state] then
+    if not new_state then
       new_state = "off"
-    elseif smatch(new_state, "[^A-Z0-9.?!(){}*@/+[%]%-%%]") then -- any undisplayable characters
-      new_state = "err"
-    else -- and a few chars need renames...
-      new_state = state_names[new_state] or new_state
+    else
+      new_state = state_names[new_state] or "err"
     end
 
     local obj = cache.sprites[key]
@@ -221,12 +224,12 @@ local function displayValString(entity,vs,color)
     if not vs then
       setStates(entity,cache,(chcount==1) and {"off"} or {"off","off"})
     elseif offset < chcount then
-      setStates(entity,cache,{"off",vs:sub(offset,offset)},color)
+      setStates(entity,cache,{"off",ssub(vs,offset,offset)},color)
     elseif offset >= chcount then
       setStates(entity,cache,
         (chcount==1) and
-          {vs:sub(offset,offset)} or
-          {vs:sub(offset-1,offset-1),vs:sub(offset,offset)}
+          {ssub(vs,offset,offset)} or
+          {ssub(vs,offset-1,offset-1),ssub(vs,offset,offset)}
         ,color)
     end
 
