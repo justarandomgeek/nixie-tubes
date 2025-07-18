@@ -34,7 +34,6 @@ local function getCache(unit_number)
   return cache
 end
 
-
 local validEntityName = {
   ['nixie-tube']       = 1,
   ['nixie-tube-alpha'] = 1,
@@ -86,15 +85,20 @@ local signalCharMap = {
   ["signal-left-parenthesis"]="(",
   ["signal-right-parenthesis"]=")",
   ["signal-multiplication"]="*",
+  ["signal-slash"]="slash",
+  ["signal-minus"]="-",
+  ["signal-plus"]="+",
+  ["signal-percent"]="%",
 
   --extended symbols
   ["signal-at"]="@",
   ["signal-curopen"]="{",
   ["signal-curclose"]="}",
-  ["signal-slash"]="slash",
-  ["signal-minus"]="-",
-  ["signal-plus"]="+",
-  ["signal-percent"]="%",
+}
+
+local state_names = {
+  ['.'] = "dot",
+  ['/'] = "slash",
 }
 
 --sets the state(s) and update the sprite for a nixie
@@ -106,10 +110,13 @@ local is_simulation = script.level.is_simulation
 ---@param newcolor? Color
 local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
-    if not new_state then new_state = "off" end
-    -- printing floats sometimes hands us a literal '.', needs to be renamed
-    if new_state == '.' then new_state = "dot" end
-
+    if not new_state or new_state == "off" then
+      new_state = "off"
+    elseif string.match(new_state, "[^A-Z0-9%.%?%!%[%]%(%)%{%}%*%@%/%-%+%%]") then -- any undisplayable characters
+      new_state = "err"
+    else -- and a few chars need renames...
+      new_state = state_names[new_state] or new_state
+    end
 
     local obj = cache.sprites[key]
     if not (obj and obj.valid) then
