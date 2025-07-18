@@ -105,18 +105,18 @@ local signalCharMap = {
 }
 
 local state_names = {
-  ["off"] = "off",
-  [" "] = "off",
-  ["\0"] = "off",
+  ["off"] = "nixie-tube-sprite-off",
+  [" "] = "nixie-tube-sprite-off",
+  ["\0"] = "nixie-tube-sprite-off",
 
-  ['.'] = "dot",
-  ['/'] = "slash",
+  ['.'] = "nixie-tube-sprite-dot",
+  ['/'] = "nixie-tube-sprite-slash",
 }
 do
   local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!(){}*@+[]-%"
   for i = 1, #chars do
     local c = ssub(chars,i,i)
-    state_names[c] = c
+    state_names[c] = "nixie-tube-sprite-"..c
   end
 end
 
@@ -129,11 +129,7 @@ local is_simulation = script.level.is_simulation
 ---@param newcolor? Color
 local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
-    if not new_state then
-      new_state = "off"
-    else
-      new_state = state_names[new_state] or "err"
-    end
+    new_state = state_names[new_state] or "nixie-tube-sprite-err"
 
     local obj = cache.sprites[key]
     if not (obj and obj.valid) then
@@ -148,7 +144,7 @@ local function setStates(nixie,cache,newstates,newcolor)
         position = {x=-9/64+((key-1)*20/64), y=3/64} -- sprite offset
       end
       obj = rendering.draw_sprite{
-        sprite = "nixie-tube-sprite-" .. new_state,
+        sprite = new_state,
         target = { entity = nixie, offset = position},
         surface = nixie.surface,
         tint = {r=1.0,  g=1.0,  b=1.0, a=1.0},
@@ -161,11 +157,11 @@ local function setStates(nixie,cache,newstates,newcolor)
     end
 
     if nixie.energy > 70 or is_simulation then
-      obj.sprite = "nixie-tube-sprite-" .. new_state
+      obj.sprite = new_state
 
       local color = newcolor
       if not color then color = {r=1.0,  g=0.6,  b=0.2, a=1.0} end
-      if new_state == "off" then color={r=1.0,  g=1.0,  b=1.0, a=1.0} end
+      if new_state == "nixie-tube-sprite-off" then color={r=1.0,  g=1.0,  b=1.0, a=1.0} end
 
       if not (cache.lastcolor[key] and (cache.lastcolor[key].r == color.r) and (cache.lastcolor[key].g == color.g) and (cache.lastcolor[key].b == color.b) and (cache.lastcolor[key].a == color.a)) then
         cache.lastcolor[key] = color
@@ -219,7 +215,7 @@ local function displayValString(entity,vs,color)
     ---@type LuaEntity?
     local nextdigit = storage.nextdigit[entity.unit_number]
     local cache = getCache(entity.unit_number)
-    local chcount = #cache.sprites
+    local chcount = validEntityName[entity.name]
 
     if not vs then
       setStates(entity,cache,(chcount==1) and {"off"} or {"off","off"})
@@ -255,7 +251,7 @@ end
 ---@return string?
 local function getAlphaSignals(entity)
   local signals = entity.get_signals(dwire_connector_id.circuit_red, dwire_connector_id.circuit_green)
-  ---@type string
+  ---@type string?
   local ch
 
   if signals and #signals > 0 then
