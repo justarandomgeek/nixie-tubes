@@ -598,10 +598,14 @@ local function RebuildNixies()
   -- wipe out any lingering sprites i've just deleted the references to...
   rendering.clear("nixie-tubes")
 
+  local names = {}
+  for name in pairs(validEntityName) do
+    names[#names+1] = name
+  end
   -- and re-index the world
   for _,surf in pairs(game.surfaces) do
-    -- re-index all nixies. non-nixie lamps will be ignored by onPlaceEntity
-    for _,lamp in pairs(surf.find_entities_filtered{type="lamp"}) do
+    -- re-index all nixies
+    for _,lamp in pairs(surf.find_entities_filtered{name=names}) do
       onPlaceEntity(lamp)
     end
   end
