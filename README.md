@@ -31,3 +31,5 @@ Various alternate display modes are also available for numbers, selected by `sig
 | -4, -8, -16, -32, -64 ...  | unsigned binary fixed point in nths |
 | 10, 100, 1000, 10000, ...  | decimal fixed point in nths |
 | -10, -100, -1000, -10000, ...  | unsigned decimal fixed point in nths |
+| 0x41534349 ("ASCI") | four ASCII characters |
+| 0x54595045 ("TYPE") | typecode (automatically applied to `signal-number-type` itself) |

@@ -101,6 +101,12 @@ local state_names = {
   ['/'] = "slash",
 }
 
+local off_states = {
+  ["off"] = true,
+  [" "] = true,
+  ["\0"] = true,
+}
+
 --sets the state(s) and update the sprite for a nixie
 local is_simulation = script.level.is_simulation
 
@@ -110,7 +116,7 @@ local is_simulation = script.level.is_simulation
 ---@param newcolor? Color
 local function setStates(nixie,cache,newstates,newcolor)
   for key,new_state in pairs(newstates) do
-    if not new_state or new_state == "off" then
+    if not new_state or off_states[new_state] then
       new_state = "off"
     elseif string.match(new_state, "[^A-Z0-9.?!(){}*@/+[%]%-%%]") then -- any undisplayable characters
       new_state = "err"
@@ -260,19 +266,21 @@ end
 local sigNumType = {name="signal-number-type",type="virtual"}
 
 ---@class (exact) NixieTubesNumberType
+---@field name string
 ---@field split_read? false
 ---@field read fun(value:int32):number
 ---@field format fun(value:number, hex:boolean):string
 
 ---@class (exact) NixieTubesSplitNumberType
+---@field name string
 ---@field split_read true
 ---@field read fun(green:int32, red:int32):number
 ---@field format fun(value:number, hex:boolean):string
 
----@type {[int32]:(NixieTubesNumberType|NixieTubesSplitNumberType)}
+---@type {[int32|string]:(NixieTubesNumberType|NixieTubesSplitNumberType)}
 local numberType = {
-  ---@type NixieTubesNumberType
   default = { -- everything else: int32
+    name = "INT32",
     read = function (value)
       return value
     end,
@@ -284,6 +292,7 @@ local numberType = {
     end,
   },
   [-1] = { -- uint32
+    name = "UINT32",
     read = function (value)
       return bit32.band(value)
     end,
@@ -295,6 +304,7 @@ local numberType = {
     end,
   },
   [1] = { --float
+    name = "FLOAT",
     read = function (value)
       return (sunpack(">f", spack(">i4", value)))
     end,
@@ -306,6 +316,7 @@ local numberType = {
     end,
   },
   [2] = { -- double
+    name = "DOUBLE",
     split_read = true,
     read = function (green, red)
       return (sunpack(">d", spack(">i4i4", green, red)))
@@ -318,6 +329,7 @@ local numberType = {
     end,
   },
 }
+numberType[0] = numberType.default
 
 ---@param dec_precision integer
 ---@param hex_precision integer
@@ -344,12 +356,14 @@ for i = 1,9,1 do
   local format = fixed_format(i, math.ceil(i/1.2))
   local base = 10^i
   numberType[base] = { -- signed
+    name = string.format("FIXED /%i", base),
     read = function (value)
       return value / base
     end,
     format = format
   }
   numberType[-base] = { -- unsigned
+    name = string.format("UFIXED /%i", base),
     read = function (value)
       return bit32.band(value) / base
     end,
@@ -362,6 +376,7 @@ for i = 2,31,1 do
   local format = fixed_format(math.ceil(i/3.32), math.ceil(i/4))
   local base = 2^i
   numberType[base] = { -- signed
+    name = string.format("FIXED /%i", base),
     read = function (value)
       return value / base
     end,
@@ -369,11 +384,45 @@ for i = 2,31,1 do
   }
 
   numberType[-base] = { -- unsigned
+    name = string.format("UFIXED /%i", base),
     read = function (value)
       return bit32.band(value) / base
     end,
     format = format,
   }
+end
+
+numberType[string.unpack(">i4",string.pack(">c4", "ASCI"))] = {
+  name = "ASCII",
+  read = function (value)
+    return value
+  end,
+  format = function (value, hex)
+    return (string.unpack(">c4", string.pack(">i4", value)))
+  end
+}
+
+do
+  ---@type NixieTubesNumberType
+  local typecode = {
+    name = "TYPECODE",
+    read = function (value)
+      return value
+    end,
+    format = function (value, hex)
+      local numtype = numberType[value]
+      if numtype then
+        return numtype.name
+      end
+      if hex then
+        -- \1 for ERR character
+        return string.format("TYPE \1 %X", value)
+      end
+      return string.format("TYPE \1 %i", value)
+    end
+  }
+  numberType[string.unpack(">i4",string.pack(">c4", "TYPE"))] = typecode
+  numberType.typecode = typecode
 end
 
 
@@ -398,6 +447,10 @@ local function onTickController(entity,cache)
   ---@type number
   local v = 0
   if selected then
+    -- force type on the typecode signal to be type enum...
+    if selected.quality == sigNumType.quality and selected.type==sigNumType.type and selected.name==sigNumType.name then
+      numType = numberType.typecode
+    end
     if numType.split_read then
       v = numType.read(
         entity.get_signal(selected, dwire_connector_id.circuit_green),
