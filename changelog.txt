@@ -2,6 +2,7 @@
 Version: 2.0.4
 Date: ????
   Changes:
+    - support other mods registering additional number formats
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.3
 Date: 2025-07-18
