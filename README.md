@@ -19,8 +19,6 @@ Circuit controlled colors are also supported, if "use colors" is selected, with 
 
 Various alternate display modes are also available for numbers, selected by `signal-hex` and `signal-number-type`. `signal-hex` switches the display from decimal to hexadecimal for all number types. `signal-number-type` selects a number format:
 
-
-
 | `signal-number-type` | Value Type |
 |----------------------|------------|
 |   any unlisted value | int32 |
@@ -33,3 +31,5 @@ Various alternate display modes are also available for numbers, selected by `sig
 | -10, -100, -1000, -10000, ...  | unsigned decimal fixed point in nths |
 | 0x41534349 ("ASCI") | four ASCII characters |
 | 0x54595045 ("TYPE") | typecode (automatically applied to `signal-number-type` itself) |
+
+Additional type codes can also be registered by [plugins](./plugins.md)
