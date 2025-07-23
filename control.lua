@@ -354,7 +354,7 @@ numberType[2] = { -- double
 ---@param dec_precision integer number of decimal digits after the point
 ---@param hex_precision integer number of hex digits after the point
 ---@return NixieTubesFormatFunction
-local function fixed_format(dec_precision, hex_precision)
+local function make_fixed_format(dec_precision, hex_precision)
   dec_precision = mceil(dec_precision)
   hex_precision = mceil(hex_precision)
   local decfmt = sformat("%%.%if", dec_precision)
@@ -393,12 +393,12 @@ end
 
 -- 10 based fractions in type codes 10,100,1000,...
 for i = 1,9,1 do
-  fixed_base(10^i, fixed_format(i, i/1.2))
+  fixed_base(10^i, make_fixed_format(i, i/1.2))
 end
 
 -- 2 based fractions in type codes 4,8,16,32,...
 for i = 2,31,1 do
-  fixed_base(2^i, fixed_format(i/3.32, i/4))
+  fixed_base(2^i, make_fixed_format(i/3.32, i/4))
 end
 
 numberType[sunpack(">i4", "ASCI")] = {
@@ -415,7 +415,7 @@ numberType[sunpack(">i4", "ASCI")] = {
 ---@param getname fun(t:T):string name getter if map is not strings directly
 ---@return NixieTubesFormatFunction
 ---@overload fun(names:{[integer]:string},unknown:string):NixieTubesFormatFunction
-local function enum_format(names, unknown, getname)
+local function make_enum_format(names, unknown, getname)
   return function (value, hex)
     local found = names[value]
     if found then
@@ -431,7 +431,7 @@ end
 ---@type NixieTubesNumberType
 local numberTypeTypecode = {
   name = "TYPECODE",
-  format = enum_format(numberType, "TYPE \1 ", function (t) return t.name end),
+  format = make_enum_format(numberType, "TYPE \1 ", function (t) return t.name end),
 }
 numberType[sunpack(">i4", "TYPE")] = numberTypeTypecode
 
@@ -461,8 +461,8 @@ local function sandbox_env()
 
     -- plus a few utils for formatters:
     int_format = int_format,
-    fixed_format = fixed_format,
-    enum_format = enum_format,
+    make_fixed_format = make_fixed_format,
+    make_enum_format = make_enum_format,
 
     -- or hop over to your own vm for a full env, if you really must...
     -- it's like 10x slower than a direct call, but quicker for dev...
