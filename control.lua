@@ -129,6 +129,7 @@ local is_simulation = script.level.is_simulation
 ---@param newstates string[]
 ---@param newcolor? Color
 local function setStates(nixie,cache,newstates,newcolor)
+  nixie.always_on = true
   for key,new_state in pairs(newstates) do
     new_state = state_names[new_state] or "nixie-tube-sprite-err"
 
@@ -582,7 +583,7 @@ local function onTickController(entity,cache)
       log{"", "Error in Nixie Tubes Plugin ", numType.from_plugin or "(?)", ".format: ", tostring(result) }
       result = "PLUGIN\1"
     end
-    displayValString(entity, result, use_colors and control.color or nil)
+    displayValString(entity, result, use_colors and control.color or entity.color)
   end
 
 end
@@ -598,8 +599,9 @@ local function onTickAlpha(entity,cache)
     cache.control = control
   end
   if control.use_colors then
-    entity.always_on = true
     color = control.color
+  else
+    color = entity.color
   end
   local is_on = (not control.circuit_enable_disable) or (control.circuit_condition and control.circuit_condition.fulfilled)
   local charsig = is_on and getAlphaSignals(entity) or "off"

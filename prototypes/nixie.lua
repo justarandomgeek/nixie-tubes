@@ -53,7 +53,7 @@ data:extend{
       usage_priority = "lamp",
     },
     energy_usage_per_tick = "4kW",
-    light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=0}},
+    light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=1}},
     picture_off =
     {
       filename = "__nixie-tubes__/graphics/nixie-base.png",
@@ -128,7 +128,7 @@ data:extend{
       usage_priority = "secondary-input",
     },
     energy_usage_per_tick = "4kW",
-    light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=0}},
+    light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=1}},
     picture_off =
     {
       filename = "__nixie-tubes__/graphics/nixie-base.png",
@@ -203,8 +203,7 @@ data:extend{
       usage_priority = "secondary-input",
     },
     energy_usage_per_tick = "4kW",
-    light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=0}},
-    light_when_colored = {intensity = 1, size = 6, color = {r=1.0, g=1.0, b=1.0}},
+    light = {intensity = 0.0, size = 0, color = {r=1, g=.6, b=.3, a=1}},
     picture_off =
     {
       filename = "__nixie-tubes__/graphics/nixie-small-base.png",
