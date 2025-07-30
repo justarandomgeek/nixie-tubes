@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.4
-Date: ????
+Date: 2025-07-30
   Changes:
     - support other mods registering additional number formats
     - use the entity color if 'Use Colors' option is not selected
