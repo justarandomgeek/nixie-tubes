@@ -1,3 +1,12 @@
+local script = script
+local remote = remote
+local commands = commands
+local rendering = rendering
+local prototypes = prototypes
+local settings = settings
+local dwcircuit_green = defines.wire_connector_id.circuit_green
+local dwcircuit_red = defines.wire_connector_id.circuit_red
+
 local sunpack = string.unpack
 local spack = string.pack
 local sformat = string.format
@@ -7,10 +16,17 @@ local mabs = math.abs
 local mceil = math.ceil
 local mfloor = math.floor
 local mfmod = math.fmod
-local dwcircuit_green = defines.wire_connector_id.circuit_green
-local dwcircuit_red = defines.wire_connector_id.circuit_red
 local pairs = pairs
 local next = next
+local pcall = pcall
+local assert = assert
+local error = error
+local log = log
+local load = load
+local type = type
+local tostring = tostring
+
+--local _ENV = nil
 
 ---@class NixieStorage
 ---@field alphas {[integer]:LuaEntity?}
@@ -495,7 +511,7 @@ local function loadPluginNumberType(name, key, code)
     (readtype~="nil" and readtype~="function") or
     type(numtype.name)~="string" or
     (splitreadtype~="nil" and splitreadtype~="boolean") then
-    error(string.format("Nixie Tubes Plugin %s numberType %i is malformed", name, key))
+    error(sformat("Nixie Tubes Plugin %s numberType %i is malformed", name, key))
   end
   numtype.from_plugin = name
   numberType[key]=numtype
@@ -510,14 +526,14 @@ for name, mod_data in pairs(prototypes.mod_data) do
         local ktype = type(key)
         if ktype=="string" then
           if #key ~= 4 then
-            error(string.format("Invalid numberType string key length %s in Nixie Tubes Plugin %s, must be exactly 4 bytes", ktype, name))
+            error(sformat("Invalid numberType string key length %s in Nixie Tubes Plugin %s, must be exactly 4 bytes", ktype, name))
           end
           key = sunpack(">i4", key)
         elseif ktype~="number" then
-          error(string.format("Invalid numberType key type %s in Nixie Tubes Plugin %s", ktype, name))
+          error(sformat("Invalid numberType key type %s in Nixie Tubes Plugin %s", ktype, name))
         end
         if numberType[key] then
-          error(string.format("Nixie Tubes Plugin %s requested numberType %i which is already registered", name, key))
+          error(sformat("Nixie Tubes Plugin %s requested numberType %i which is already registered", name, key))
         end
         loadPluginNumberType(name, key, numtype.code)
       end
