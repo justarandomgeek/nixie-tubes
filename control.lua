@@ -1,29 +1,21 @@
+local numberType = require("number_type")
+local plugins = require("plugins")
+
+
 local script = script
 local remote = remote
 local commands = commands
 local rendering = rendering
-local prototypes = prototypes
 local settings = settings
 local dwcircuit_green = defines.wire_connector_id.circuit_green
 local dwcircuit_red = defines.wire_connector_id.circuit_red
 
-local sunpack = string.unpack
-local spack = string.pack
-local sformat = string.format
 local ssub = string.sub
 local bband = bit32.band
-local mabs = math.abs
-local mceil = math.ceil
-local mfloor = math.floor
-local mfmod = math.fmod
 local pairs = pairs
 local next = next
 local pcall = pcall
-local assert = assert
-local error = error
 local log = log
-local load = load
-local type = type
 local tostring = tostring
 
 --local _ENV = nil
@@ -293,254 +285,6 @@ end
 ---@type SignalID
 local sigNumType = {name="signal-number-type",type="virtual"}
 
----@alias NixieTubesFormatFunction fun(value:number, hex:boolean):string
-
----@class (exact) NixieTubesNumberType
----@field name string
----@field from_plugin? string
----@field split_read? false
----@field read? fun(value:int32):number
----@field format NixieTubesFormatFunction
-
----@class (exact) NixieTubesSplitNumberType
----@field name string
----@field from_plugin? string
----@field split_read true
----@field read fun(green:int32, red:int32):number
----@field format NixieTubesFormatFunction
-
----@type {[int32]:(NixieTubesNumberType|NixieTubesSplitNumberType)}
-local numberType = {}
-
-
----@param value integer
----@param hex boolean
----@param prefix? string
----@return string
-local function int_format(value, hex, prefix)
-  if not prefix then prefix = "" end
-  if hex then
-    if value<0 then
-      return sformat("%s-%X", prefix, mabs(value))
-    else
-      return sformat("%s%X", prefix, mabs(value))
-    end
-    
-  end
-  return sformat("%s%i", prefix, value)
-end
-
----@type NixieTubesNumberType
-local numberTypeDefault = { -- everything else: int32
-  name = "INT32",
-  format = int_format,
-}
-numberType[0] = numberTypeDefault
-
-numberType[-1] = { -- uint32
-  name = "UINT32",
-  read = bband,
-  format = int_format,
-}
-numberType[1] = { --float
-  name = "FLOAT",
-  read = function (value)
-    return (sunpack(">f", spack(">i4", value)))
-  end,
-  format = function (value, hex)
-    if hex then
-      return sformat("%A", value)
-    end
-    return sformat("%G", value)
-  end,
-}
-numberType[2] = { -- double
-  name = "DOUBLE",
-  split_read = true,
-  read = function (green, red)
-    return (sunpack(">d", spack(">i4i4", green, red)))
-  end,
-  format = function (value, hex)
-    if hex then
-      return sformat("%A", value)
-    end
-    return sformat("%.14G", value)
-  end,
-}
-
----@param dec_precision integer number of decimal digits after the point
----@param hex_precision integer number of hex digits after the point
----@return NixieTubesFormatFunction
-local function make_fixed_format(dec_precision, hex_precision)
-  dec_precision = mceil(dec_precision)
-  hex_precision = mceil(hex_precision)
-  local decfmt = sformat("%%.%if", dec_precision)
-  local hexfmt = sformat("%%s%%X.%%0%iX", hex_precision)
-  return function(value, hex)
-      if hex then
-        local sign = value<0 and "-" or ""
-        value = mabs(value)
-        local ipart = mfloor(value)
-        local fpart = mfmod(value, 1) * (16^hex_precision)
-        return sformat(hexfmt, sign, ipart, fpart)
-      end
-      return sformat(decfmt, value)
-  end
-  
-end
-
----@param base integer
----@param format NixieTubesFormatFunction
-local function fixed_base(base, format)
-  numberType[base] = { -- signed
-    name = sformat("FIXED /%i", base),
-    read = function (value)
-      return value / base
-    end,
-    format = format
-  }
-  numberType[-base] = { -- unsigned
-    name = sformat("UFIXED /%i", base),
-    read = function (value)
-      return bband(value) / base
-    end,
-    format = format,
-  }
-end
-
--- 10 based fractions in type codes 10,100,1000,...
-for i = 1,9,1 do
-  fixed_base(10^i, make_fixed_format(i, i/1.2))
-end
-
--- 2 based fractions in type codes 4,8,16,32,...
-for i = 2,31,1 do
-  fixed_base(2^i, make_fixed_format(i/3.32, i/4))
-end
-
-numberType[sunpack(">i4", "ASCI")] = {
-  name = "4CH ASCII",
-  format = function (value, hex)
-    return spack(">i4", value)
-  end
-}
-
-
----@generic T
----@param names {[integer]:T} map of value->name or value->object
----@param unknown string name to use if none in map match
----@param getname fun(t:T):string name getter if map is not strings directly
----@return NixieTubesFormatFunction
----@overload fun(names:{[integer]:string},unknown:string):NixieTubesFormatFunction
-local function make_enum_format(names, unknown, getname)
-  return function (value, hex)
-    local found = names[value]
-    if found then
-      if getname then
-        return getname(found)
-      end
-      return found
-    end
-    return int_format(value, hex, unknown)
-  end
-end
-
----@type NixieTubesNumberType
-local numberTypeTypecode = {
-  name = "TYPECODE",
-  format = make_enum_format(numberType, "TYPE \1 ", function (t) return t.name end),
-}
-numberType[sunpack(">i4", "TYPE")] = numberTypeTypecode
-
----@class (exact) NixieTubesPluginData
----@field numberType? {[int32|string]:{code:string}}
-
-local function sandbox_env()
-  ---@class NixieTubesPluginEnv
-  local env = {
-    -- limited set of builtins:
-    assert = assert,
-    error = error,
-    pcall = pcall,
-    xpcall = xpcall,
-    ipairs = ipairs,
-    next = next,
-    pairs = pairs,
-    select = select,
-    tonumber = tonumber,
-    tostring = tostring,
-    type = type,
-    table = table,
-    string = string,
-    bit32 = bit32,
-    math = math,
-    table_size = table_size,
-
-    -- plus a few utils for formatters:
-    int_format = int_format,
-    make_fixed_format = make_fixed_format,
-    make_enum_format = make_enum_format,
-
-    -- or hop over to your own vm for a full env, if you really must...
-    -- it's like 10x slower than a direct call, but quicker for dev...
-    -- but you can't add/remove remotes in the sandbox, only call!
-    remote = {
-      call = remote.call,
-      --interfaces = remote.interfaces, --todo: this needs more magic. worth it?
-    },
-    prototypes = prototypes,
-    defines = defines,
-  }
-  return env
-end
-
----@param name string
----@param key integer
----@param code string
-local function loadPluginNumberType(name, key, code)
-  -- just throw now if the load/call are bad
-  local plugin = assert(load(code, sformat("=(nixie-tubes plugin %s numtype %i)", name, key), "t", sandbox_env()))
-  local numtype = plugin() --[[@as NixieTubesNumberType|NixieTubesSplitNumberType|nil]]
-  if not numtype then
-    log{"", "Nixie Tubes Plugin ", name, " returned nothing"}
-    return
-  end
-  local splitreadtype = type(numtype.split_read)
-  local readtype = type(numtype.read)
-  if type(numtype.format)~="function" or
-    (readtype~="nil" and readtype~="function") or
-    type(numtype.name)~="string" or
-    (splitreadtype~="nil" and splitreadtype~="boolean") then
-    error(sformat("Nixie Tubes Plugin %s numberType %i is malformed", name, key))
-  end
-  numtype.from_plugin = name
-  numberType[key]=numtype
-  log{"", "Nixie Tubes Plugin ", name, " registered typecode ", key}
-end
-
-for name, mod_data in pairs(prototypes.mod_data) do
-  if mod_data.data_type == "NixieTubesPluginData" then
-    local data = mod_data.data --[[@as NixieTubesPluginData]]
-    if data.numberType then
-      for key, numtype in pairs(data.numberType) do
-        local ktype = type(key)
-        if ktype=="string" then
-          if #key ~= 4 then
-            error(sformat("Invalid numberType string key length %s in Nixie Tubes Plugin %s, must be exactly 4 bytes", ktype, name))
-          end
-          key = sunpack(">i4", key)
-        elseif ktype~="number" then
-          error(sformat("Invalid numberType key type %s in Nixie Tubes Plugin %s", ktype, name))
-        end
-        if numberType[key] then
-          error(sformat("Nixie Tubes Plugin %s requested numberType %i which is already registered", name, key))
-        end
-        loadPluginNumberType(name, key, numtype.code)
-      end
-    end
-  end
-end
-
 ---@type SignalID
 local sigHex = {name="signal-hex",type="virtual"}
 
@@ -554,7 +298,7 @@ local function onTickController(entity,cache)
   end
 
   local typeCode = entity.get_signal(sigNumType, dwcircuit_red, dwcircuit_green)
-  local numType = numberType[typeCode] or numberTypeDefault
+  local numType = numberType.map[typeCode] or numberType.default
 
   local hex = entity.get_signal(sigHex, dwcircuit_green, dwcircuit_red) ~= 0
 
@@ -564,7 +308,7 @@ local function onTickController(entity,cache)
   if selected then
     -- force type on the typecode signal to be type enum...
     if selected.quality == sigNumType.quality and selected.type==sigNumType.type and selected.name==sigNumType.name then
-      numType = numberTypeTypecode
+      numType = numberType.typecode
     end
 
     local success,result
@@ -696,7 +440,7 @@ end)
 
 script.on_event(defines.events.on_object_destroyed, function (event)
   if event.type ~= defines.target_type.entity then return end
-  
+
   -- promote next digit if any
   local nextdigit = storage.nextdigit[event.useful_id]
   if nextdigit then
@@ -706,8 +450,6 @@ script.on_event(defines.events.on_object_destroyed, function (event)
     end
     storage.nextdigit[event.useful_id] = nil
   end
-
-
 end)
 
 ---@param entity LuaEntity
@@ -832,3 +574,5 @@ script.on_event(defines.events.on_script_trigger_effect, function (event)
     end
   end
 end)
+
+plugins.load()
