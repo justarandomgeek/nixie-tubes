@@ -8,6 +8,10 @@
   "dependencies": ["base >= 2.0.34"],
   "package":{
     "ignore":[ "**/*.pdn" ],
-    "sync_portal_details": true
+    "sync_portal_details": true,
+    "markdown": {
+      "links": "url",
+      "base_url": "https://github.com/justarandomgeek/nixie-tubes/blob/master/"
+    }
   }
 }
