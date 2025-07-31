@@ -165,6 +165,35 @@ local typecode = {
 }
 map[sunpack(">i4", "TYPE")] = typecode
 
+local function time_format(value, hex)
+    local sign = value < 0 and "-" or ""
+    value = mabs(value)
+    local ticks = value % 60
+    local seconds = mfloor(value / 60) % 60
+    local minutes = mfloor(value / (60*60)) % 60
+    local hours = mfloor(value / (60*60*60)) % 24
+    local days = mfloor(value / (60*60*60*24))
+
+    if days > 0 then
+      return sformat("%s%iD %02i:%02i:%02i.%02i", sign, days, hours, minutes, seconds, ticks)
+    elseif hours > 0 then
+      return sformat("%s%i:%02i:%02i.%02i", sign, hours, minutes, seconds, ticks)
+    elseif minutes > 0 then
+      return sformat("%s%i:%02i.%02i", sign, minutes, seconds, ticks)
+    else
+      return sformat("%s%i.%02i", sign, seconds, ticks)
+    end
+  end
+map[60] = {
+  name = "TIME",
+  format=time_format,
+}
+map[-60] = {
+  name = "UTIME",
+  read = bband,
+  format=time_format,
+}
+
 
 return {
   map = map,

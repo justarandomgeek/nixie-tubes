@@ -122,7 +122,7 @@ local state_names = {
   ['/'] = "nixie-tube-sprite-slash",
 }
 do
-  local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!(){}*@+[]-%"
+  local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789?!(){}*@+[]-%:"
   for i = 1, #chars do
     local c = ssub(chars,i,i)
     state_names[c] = "nixie-tube-sprite-"..c

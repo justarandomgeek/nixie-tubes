@@ -311,7 +311,7 @@ local spritelist =
   ["-"]={x=1,y=5}, -- for subtraction operation
   ["+"]={x=2,y=5},
   ["%"]={x=3,y=5},
-
+  [":"]={x=5,y=5},
   }
 
 for ch,offset in pairs(spritelist) do
