@@ -2,6 +2,7 @@
 Version: 2.0.6
 Date: ????
   Changes:
+    - add `:` character mapping for alpha nixies too
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.5
 Date: 2025-07-31

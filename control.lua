@@ -106,6 +106,7 @@ local signalCharMap = {
   ["signal-minus"]="-",
   ["signal-plus"]="+",
   ["signal-percent"]="%",
+  ["signal-colon"]=":",
 
   --extended symbols
   ["signal-at"]="@",
