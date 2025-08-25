@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.7
-Date: ????
+Date: 2025-08-25
   Changes:
     - correct dependency threshold for factorio >=2.0.58 for `mod-data` prototypes
     - register `{`, `}`, `@` signals for signalstrings if present
