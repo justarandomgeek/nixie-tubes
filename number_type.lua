@@ -105,13 +105,15 @@ end
 ---@param base integer
 ---@param format NixieTubesFormatFunction
 local function fixed_base(base, format)
-  map[base] = { -- signed
-    name = sformat("FIXED /%i", base),
-    read = function (value)
-      return value / base
-    end,
-    format = format
-  }
+  if base < 0x80000000 then -- don't make the one that's out of range...
+    map[base] = { -- signed
+      name = sformat("FIXED /%i", base),
+      read = function (value)
+        return value / base
+      end,
+      format = format
+    }
+  end
   map[-base] = { -- unsigned
     name = sformat("UFIXED /%i", base),
     read = function (value)
