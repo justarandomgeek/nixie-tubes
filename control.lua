@@ -11,7 +11,14 @@ local dwcircuit_green = defines.wire_connector_id.circuit_green
 local dwcircuit_red = defines.wire_connector_id.circuit_red
 
 local ssub = string.sub
+local sgsub = string.gsub
+local sformat = string.format
+local spack = string.pack
+local sunpack = string.unpack
+local smatch = string.match
+local sbyte = string.byte
 local bband = bit32.band
+local tonumber = tonumber
 local pairs = pairs
 local next = next
 local pcall = pcall
@@ -570,11 +577,11 @@ local function print_type_code_info(player, code)
     return
   end
   local ntype = numberType.map[code]
-  local codestr = string.gsub(string.pack(">i4", code), "[\x00-\x1f\x7f-\xff]", function (s) return string.format("\\x%02x", string.byte(s)) end)
+  local codestr = sgsub(spack(">i4", code), "[\x00-\x1f\x7f-\xff]", function (s) return sformat("\\x%02x", sbyte(s)) end)
   if ntype then
-    player.print(string.format("%s dec %d hex 0x%x str '%s' %s", ntype.name, code, bit32.band(code), codestr, ntype.from_plugin or ""))
+    player.print(sformat("%s dec %d hex 0x%x str '%s' %s", ntype.name, code, bband(code), codestr, ntype.from_plugin or ""))
   else
-    player.print(string.format("Unknown Type dec %d hex 0x%x str '%s'", code, bit32.band(code), codestr))
+    player.print(sformat("Unknown Type dec %d hex 0x%x str '%s'", code, bband(code), codestr))
   end
 end
 
@@ -585,8 +592,8 @@ local show_codes = {
   [2] = true,
   [60] = true,
   [-60] = true,
-  [string.unpack(">i4", "TYPE")] = true,
-  [string.unpack(">i4", "ASCI")] = true,
+  [sunpack(">i4", "TYPE")] = true,
+  [sunpack(">i4", "ASCI")] = true,
 }
 commands.add_command("NixieTypeCode", "Display information about typecodes", function (param)
   if not param.player_index then return end
@@ -605,7 +612,7 @@ commands.add_command("NixieTypeCode", "Display information about typecodes", fun
 
   -- try match:
   -- hex 0x[0-9a-fA-F]+
-  local neg,hex = string.match(param.parameter, "^(%-?)0x([0-9a-fA-F]+)$")
+  local neg,hex = smatch(param.parameter, "^(%-?)0x([0-9a-fA-F]+)$")
   if hex then
     local code = tonumber(hex, 16)
     if neg == "-" then
@@ -619,14 +626,14 @@ commands.add_command("NixieTypeCode", "Display information about typecodes", fun
     return
   end
   -- decimal [0-9]+
-  local dec = string.match(param.parameter, "^(%-?[0-9]+)$")
+  local dec = smatch(param.parameter, "^(%-?[0-9]+)$")
   if dec then
     print_type_code_info(player, tonumber(dec, 10))
     return
   end
   -- fourchar #==4
   if #param.parameter == 4 then
-    print_type_code_info(player, string.unpack(">i4", param.parameter))
+    print_type_code_info(player, sunpack(">i4", param.parameter))
     return
   end
   print_type_code_info(player)
