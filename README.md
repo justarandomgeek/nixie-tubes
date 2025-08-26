@@ -34,4 +34,4 @@ Various alternate display modes are also available for numbers, selected by `sig
 | 0x41534349 ("ASCI") | four ASCII characters |
 | 0x54595045 ("TYPE") | typecode (automatically applied to `signal-number-type` itself) |
 
-Additional type codes can also be registered by [plugins](./plugins.md)
+Typecodes can be looked up in game with `/NixieTypeCode [code]`. Additional type codes can also be registered by [plugins](./plugins.md)

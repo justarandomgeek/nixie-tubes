@@ -561,6 +561,77 @@ remote.add_interface("nixie-tubes",{
 
 commands.add_command("RebuildNixies","Reset all Nixie Tubes to clear display glitches.", RebuildNixies)
 
+
+---@param player LuaPlayer
+---@param code? int32
+local function print_type_code_info(player, code)
+  if not code then
+    player.print("Invalid Type Specifier")
+    return
+  end
+  local ntype = numberType.map[code]
+  local codestr = string.gsub(string.pack(">i4", code), "[\x00-\x1f\x7f-\xff]", function (s) return string.format("\\x%02x", string.byte(s)) end)
+  if ntype then
+    player.print(string.format("%s dec %d hex 0x%x str '%s' %s", ntype.name, code, bit32.band(code), codestr, ntype.from_plugin or ""))
+  else
+    player.print(string.format("Unknown Type dec %d hex 0x%x str '%s'", code, bit32.band(code), codestr))
+  end
+end
+
+local show_codes = {
+  [0] = true,
+  [-1] = true,
+  [1] = true,
+  [2] = true,
+  [60] = true,
+  [-60] = true,
+  [string.unpack(">i4", "TYPE")] = true,
+  [string.unpack(">i4", "ASCI")] = true,
+}
+commands.add_command("NixieTypeCode", "Display information about typecodes", function (param)
+  if not param.player_index then return end
+  local player = game.get_player(param.player_index)
+  ---@cast player -?
+
+  if not param.parameter then
+    for code, ntype in pairs(numberType.map) do
+      if ntype.from_plugin or show_codes[code] then
+        print_type_code_info(player, code)
+      end
+    end
+    player.print("Fixed-Point Types skipped")
+    return
+  end
+
+  -- try match:
+  -- hex 0x[0-9a-fA-F]+
+  local neg,hex = string.match(param.parameter, "^(%-?)0x([0-9a-fA-F]+)$")
+  if hex then
+    local code = tonumber(hex, 16)
+    if neg == "-" then
+      code = -code
+    else
+      if code >= 0x80000000 then
+        code = code - 0x100000000
+      end
+    end
+    print_type_code_info(player, code)
+    return
+  end
+  -- decimal [0-9]+
+  local dec = string.match(param.parameter, "^(%-?[0-9]+)$")
+  if dec then
+    print_type_code_info(player, tonumber(dec, 10))
+    return
+  end
+  -- fourchar #==4
+  if #param.parameter == 4 then
+    print_type_code_info(player, string.unpack(">i4", param.parameter))
+    return
+  end
+  print_type_code_info(player)
+end)
+
 script.on_configuration_changed(function(data)
   if data.mod_changes and data.mod_changes["nixie-tubes"] then
     RebuildNixies()

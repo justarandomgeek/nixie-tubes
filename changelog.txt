@@ -2,6 +2,7 @@
 Version: 2.0.8
 Date: ????
   Changes:
+    - add `/NixieTypeCode [code]` for looking up type codes in-game
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.7
 Date: 2025-08-25
