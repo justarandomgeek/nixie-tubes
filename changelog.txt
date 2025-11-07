@@ -2,6 +2,7 @@
 Version: 2.0.9
 Date: ????
   Changes:
+    - fix display of `.` and `/` characters on Alpha Nixies
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.8
 Date: 2025-08-27
