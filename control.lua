@@ -1,3 +1,5 @@
+---@namespace NixieTubes
+
 local numberType = require("number_type")
 local plugins = require("plugins")
 
