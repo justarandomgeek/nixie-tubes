@@ -44,6 +44,7 @@ storage = {} --[[@as NixieStorage]]
 ---@field lastvalue? integer
 ---@field lastcolor Color[]
 ---@field sprites LuaRenderObject[]
+---@field last_change_tick? MapTick
 
 
 ---@param unit_number integer
@@ -301,6 +302,14 @@ local sigHex = {name="signal-hex",type="virtual"}
 ---@param entity LuaEntity
 ---@param cache NixieCache
 local function onTickController(entity,cache)
+  local last_change_tick = cache.last_change_tick
+  if not (
+    (not last_change_tick) or
+    entity.get_signals_changed(dwcircuit_red, last_change_tick) or 
+    entity.get_signals_changed(dwcircuit_green, last_change_tick)
+    ) then return end
+  cache.last_change_tick = game.tick
+
   local control = cache.control
   if not (control and control.valid) then
     control = entity.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
@@ -361,6 +370,13 @@ end
 ---@param entity LuaEntity
 ---@param cache NixieCache
 local function onTickAlpha(entity,cache)
+  local last_change_tick = cache.last_change_tick
+  if not (
+    (not last_change_tick) or
+    entity.get_signals_changed(dwcircuit_red, last_change_tick) or 
+    entity.get_signals_changed(dwcircuit_green, last_change_tick)
+    ) then return end
+  cache.last_change_tick = game.tick
   ---@type Color?
   local color
   local control = cache.control
