@@ -30,13 +30,13 @@ local tostring = tostring
 --local _ENV = nil
 
 ---@class NixieStorage
----@field alphas {[integer]:LuaEntity?}
+---@field alphas table<integer, LuaEntity>
 ---@field next_alpha? integer
----@field controllers {[integer]:LuaEntity?}
+---@field controllers table<integer, LuaEntity>
 ---@field next_controller? integer
----@field nextdigit {[integer]:LuaEntity?}
----@field cache {[integer]:NixieCache?}
-storage = {}
+---@field nextdigit table<integer, LuaEntity>
+---@field cache table<integer, NixieCache>
+storage = {} --[[@as NixieStorage]]
 
 ---@class NixieCache
 ---@field control? LuaLampControlBehavior
@@ -156,7 +156,7 @@ local function setStates(nixie,cache,newstates,newcolor)
       cache.lastcolor[key] = nil
 
       local num = validEntityName[nixie.name]
-      ---@type Vector.0
+      ---@type Vector
       local position
       if num == 1 then -- large tube, one sprite
         position = {x=1/32, y=1/32}

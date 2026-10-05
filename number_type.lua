@@ -45,15 +45,15 @@ end
 
 ---@type NixieTubesNumberType
 local default = { -- everything else: int32
-  name = "INT32",
-  format = int_format,
+name = "INT32",
+format = int_format --[[@as NixieTubesFormatFunction]],
 }
 map[0] = default
 
 map[-1] = { -- uint32
   name = "UINT32",
-  read = bband,
-  format = int_format,
+  read = bband --[[@as fun(value:int32):number]],
+  format = int_format --[[@as NixieTubesFormatFunction]],
 }
 map[1] = { --float
   name = "FLOAT",
@@ -81,8 +81,8 @@ map[2] = { -- double
   end,
 }
 
----@param dec_precision integer number of decimal digits after the point
----@param hex_precision integer number of hex digits after the point
+---@param dec_precision number number of decimal digits after the point
+---@param hex_precision number number of hex digits after the point
 ---@return NixieTubesFormatFunction
 local function make_fixed_format(dec_precision, hex_precision)
   dec_precision = mceil(dec_precision)
@@ -125,12 +125,12 @@ end
 
 -- 10 based fractions in type codes 10,100,1000,...
 for i = 1,9,1 do
-  fixed_base(10^i, make_fixed_format(i, i/1.2))
+  fixed_base((10^i) --[[@as integer]], make_fixed_format(i, i/1.2))
 end
 
 -- 2 based fractions in type codes 4,8,16,32,...
 for i = 2,31,1 do
-  fixed_base(2^i, make_fixed_format(i/3.32, i/4))
+  fixed_base((2^i) --[[@as integer]], make_fixed_format(i/3.32, i/4))
 end
 
 map[sunpack(">i4", "ASCI")] = {
@@ -140,13 +140,11 @@ map[sunpack(">i4", "ASCI")] = {
   end
 }
 
-
----@generic T
+---@generic T = string
 ---@param names {[integer]:T} map of value->name or value->object
----@param unknown string name to use if none in map match
----@param getname fun(t:T):string name getter if map is not strings directly
+---@param unknown? string name to use if none in map match
+---@param getname? fun(t:T):string name getter if map is not strings directly
 ---@return NixieTubesFormatFunction
----@overload fun(names:{[integer]:string},unknown:string):NixieTubesFormatFunction
 local function make_enum_format(names, unknown, getname)
   return function (value, hex)
     local found = names[value]

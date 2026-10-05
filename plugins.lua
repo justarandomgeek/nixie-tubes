@@ -30,7 +30,7 @@ local defines_copy = table.deepcopy(defines)
 local _ENV = nil
 
 ---@class (exact) NixieTubesPluginData
----@field numberType? {[int32|string]:{code:string}}
+---@field numberType? table<int32|string, {code : Language<"lua">}>
 
 local function sandbox_env()
   ---@class NixieTubesPluginEnv
